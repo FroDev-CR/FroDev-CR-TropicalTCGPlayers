@@ -1,0 +1,148 @@
+:root {
+  --primary-color: #2A2E35;
+  --accent-color: #C5A47E;
+  --transition: 0.3s ease;
+}
+
+.section {
+  padding: 6rem 0;
+}
+
+.section-title {
+  font-size: 2.3rem;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 3rem;
+  position: relative;
+  color: var(--primary-color);
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 2px;
+  background: var(--accent-color);
+}
+
+.calendar-container {
+  height: 70vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.event-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.event-price {
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+.modal-image {
+  height: 300px;
+  object-fit: cover;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.nav-hover {
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.nav-hover::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent-color);
+  transition: width var(--transition);
+}
+
+.nav-hover:hover::after {
+  width: 100%;
+}
+
+.product-card {
+  transition: transform var(--transition), box-shadow var(--transition);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+}
+
+.admin-card {
+  transition: transform 0.2s ease;
+}
+
+.admin-card:hover {
+  transform: scale(1.02);
+}
+
+.rbc-calendar {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.rbc-header {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.8rem 0;
+  font-weight: 400;
+
+  .stream-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+  
+  .stream-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .stream-info-card {
+    background: var(--primary-color);
+    color: white;
+    border: 2px solid var(--accent-color);
+  }
+  
+  .stream-info-card h4 {
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+  }
+  
+  .stream-info-card li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+}
