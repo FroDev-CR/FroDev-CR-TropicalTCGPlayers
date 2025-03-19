@@ -4,8 +4,50 @@ import { Container, Form, Button, Alert, Card } from 'react-bootstrap';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
+import ReactStars from "react-rating-stars-component";
 
 const provinces = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón'];
+
+const rateUser = async (userId, newRating) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      const currentRating = userData.rating || 0;
+      const currentReviews = userData.reviews || 0;
+
+      const updatedReviews = currentReviews + 1;
+      const updatedRating = (currentRating * currentReviews + newRating) / updatedReviews;
+
+      await updateDoc(userRef, {
+        rating: updatedRating,
+        reviews: updatedReviews,
+      });
+
+      alert("Calificación enviada con éxito.");
+    }
+  } catch (error) {
+    console.error("Error al calificar:", error);
+    alert("Hubo un error al calificar.");
+  }
+};
+
+const RatingComponent = ({ userId }) => {
+  const handleRating = (newRating) => {
+    rateUser(userId, newRating);
+  };
+
+  return (
+    <ReactStars
+      count={5}
+      size={30}
+      activeColor="#ffd700"
+      onChange={handleRating}
+    />
+  );
+};
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
@@ -95,6 +137,8 @@ export default function Profile() {
                 <p><strong>Email:</strong> {auth.currentUser?.email}</p>
                 <p><strong>Teléfono:</strong> {userData?.phone || 'No registrado'}</p>
                 <p><strong>Provincia:</strong> {userData?.province || 'No especificada'}</p>
+                <p><strong>Puntuación:</strong> {userData?.rating ? userData.rating.toFixed(1) : "No tiene calificaciones aún"} ⭐</p>
+                <RatingComponent userId={auth.currentUser?.uid} />
               </div>
             )}
           </Card.Body>

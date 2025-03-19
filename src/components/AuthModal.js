@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Modal, Button, Form, Tab, Tabs } from 'react-bootstrap';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const provinces = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón'];
 
@@ -20,23 +20,56 @@ export default function AuthModal({ show, handleClose }) {
 
   const handleAuth = async (e) => {
     e.preventDefault();
+    setError('');
+    
     try {
       if (activeTab === 'register') {
-        const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        // 1. Crear usuario en Authentication
+        const userCredential = await createUserWithEmailAndPassword(
+          auth, 
+          formData.email, 
+          formData.password
+        );
+
+        // 2. Crear documento en Firestore
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           username: formData.username,
           email: formData.email,
           phone: formData.phone,
           province: formData.province,
-          createdAt: new Date()
+          rating: 0,         // Campo inicial para rating
+          reviews: 0,        // Campo inicial para reviews
+          createdAt: serverTimestamp()  // Usar timestamp del servidor
         });
       } else {
+        // Login normal
         await signInWithEmailAndPassword(auth, formData.email, formData.password);
       }
       handleClose();
     } catch (err) {
-      setError(err.message);
+      console.error('Error de autenticación:', err);
+      setError(formatFirebaseError(err.message));
     }
+  };
+
+  // Función para formatear errores
+  const formatFirebaseError = (message) => {
+    if (message.includes('auth/email-already-in-use')) {
+      return 'El correo ya está registrado';
+    }
+    if (message.includes('auth/weak-password')) {
+      return 'La contraseña debe tener al menos 6 caracteres';
+    }
+    if (message.includes('auth/invalid-email')) {
+      return 'Correo electrónico inválido';
+    }
+    if (message.includes('auth/user-not-found')) {
+      return 'Usuario no registrado';
+    }
+    if (message.includes('auth/wrong-password')) {
+      return 'Contraseña incorrecta';
+    }
+    return 'Error en el proceso. Intente nuevamente';
   };
 
   return (
@@ -78,6 +111,7 @@ export default function AuthModal({ show, handleClose }) {
                 <Form.Label>Nombre de usuario</Form.Label>
                 <Form.Control 
                   required
+                  minLength="3"
                   value={formData.username}
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
                 />
@@ -96,6 +130,7 @@ export default function AuthModal({ show, handleClose }) {
                 <Form.Control 
                   type="password" 
                   required
+                  minLength="6"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                 />
@@ -105,6 +140,8 @@ export default function AuthModal({ show, handleClose }) {
                 <Form.Control 
                   type="tel" 
                   required
+                  pattern="[0-9]{4}-[0-9]{4}"
+                  placeholder="Ej: 8888-8888"
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 />
