@@ -45,6 +45,11 @@ const CustomNavbar = () => {
                   </Nav.Link>
                 </>
               )}
+
+<Nav.Link as={Link} to="/binders" className="mx-3 nav-hover">
+  Mis Binders
+</Nav.Link>
+
               <Nav.Link as={Link} to="/live" className="mx-3 nav-hover">
                 En Vivo
               </Nav.Link>

@@ -12,6 +12,11 @@ import CreateListing from './pages/CreateListing';
 import Cart from './pages/Cart';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/main.css';
+import 'react-toastify/dist/ReactToastify.css';
+import { Toaster } from 'react-hot-toast';
+import BinderView from './pages/BinderView';
+import Binders from './pages/Binders';
+
 
 function App() {
   return (
@@ -25,8 +30,11 @@ function App() {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/perfil" element={<Profile />} />
         <Route path="/crear-listado" element={<CreateListing />} />
+        <Route path="/binders" element={<Binders />} />
+        <Route path="/binder/:id" element={<BinderView />} />
         <Route path="/carrito" element={<Cart />} />
       </Routes>
+      <Toaster position="top-right" />
       <Footer />
     </Router>
   );

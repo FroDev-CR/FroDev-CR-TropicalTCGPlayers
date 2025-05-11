@@ -1,9 +1,9 @@
-// src/components/AuthModal.js
 import { useState } from 'react';
 import { Modal, Button, Form, Tab, Tabs } from 'react-bootstrap';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import toast from 'react-hot-toast';
 
 const provinces = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón'];
 
@@ -17,63 +17,55 @@ export default function AuthModal({ show, handleClose }) {
     province: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setError('');
-    
+    setLoading(true);
+
     try {
       if (activeTab === 'register') {
-        // 1. Crear usuario en Authentication
-        const userCredential = await createUserWithEmailAndPassword(
-          auth, 
-          formData.email, 
-          formData.password
-        );
+        const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
 
-        // 2. Crear documento en Firestore
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           username: formData.username,
           email: formData.email,
           phone: formData.phone,
           province: formData.province,
-          rating: 0,         // Campo inicial para rating
-          reviews: 0,        // Campo inicial para reviews
-          createdAt: serverTimestamp()  // Usar timestamp del servidor
+          rating: 0,
+          reviews: 0,
+          createdAt: serverTimestamp()
         });
+
+        toast.success("¡Registrado con éxito!");
+        setTimeout(() => handleClose(), 1000);
+
       } else {
-        // Login normal
         await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        toast.success("Sesión iniciada");
+        setTimeout(() => handleClose(), 1000);
       }
-      handleClose();
+
     } catch (err) {
       console.error('Error de autenticación:', err);
       setError(formatFirebaseError(err.message));
     }
+
+    setLoading(false);
   };
 
-  // Función para formatear errores
   const formatFirebaseError = (message) => {
-    if (message.includes('auth/email-already-in-use')) {
-      return 'El correo ya está registrado';
-    }
-    if (message.includes('auth/weak-password')) {
-      return 'La contraseña debe tener al menos 6 caracteres';
-    }
-    if (message.includes('auth/invalid-email')) {
-      return 'Correo electrónico inválido';
-    }
-    if (message.includes('auth/user-not-found')) {
-      return 'Usuario no registrado';
-    }
-    if (message.includes('auth/wrong-password')) {
-      return 'Contraseña incorrecta';
-    }
+    if (message.includes('auth/email-already-in-use')) return 'El correo ya está registrado';
+    if (message.includes('auth/weak-password')) return 'La contraseña debe tener al menos 6 caracteres';
+    if (message.includes('auth/invalid-email')) return 'Correo electrónico inválido';
+    if (message.includes('auth/user-not-found')) return 'Usuario no registrado';
+    if (message.includes('auth/wrong-password')) return 'Contraseña incorrecta';
     return 'Error en el proceso. Intente nuevamente';
   };
 
   return (
-    <Modal show={show} onHide={handleClose}>
+    <Modal show={show} onHide={handleClose} backdrop="static" keyboard={false} animation={true}>
       <Modal.Header closeButton>
         <Modal.Title>{activeTab === 'login' ? 'Iniciar Sesión' : 'Registrarse'}</Modal.Title>
       </Modal.Header>
@@ -83,25 +75,25 @@ export default function AuthModal({ show, handleClose }) {
             <Form onSubmit={handleAuth}>
               <Form.Group className="mb-3">
                 <Form.Label>Email</Form.Label>
-                <Form.Control 
-                  type="email" 
+                <Form.Control
+                  type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Contraseña</Form.Label>
-                <Form.Control 
-                  type="password" 
+                <Form.Control
+                  type="password"
                   required
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </Form.Group>
               {error && <div className="text-danger mb-3">{error}</div>}
-              <Button variant="primary" type="submit" className="w-100">
-                Ingresar
+              <Button variant="primary" type="submit" className="w-100" disabled={loading}>
+                {loading ? "Iniciando..." : "Ingresar"}
               </Button>
             </Form>
           </Tab>
@@ -109,57 +101,56 @@ export default function AuthModal({ show, handleClose }) {
             <Form onSubmit={handleAuth}>
               <Form.Group className="mb-3">
                 <Form.Label>Nombre de usuario</Form.Label>
-                <Form.Control 
+                <Form.Control
                   required
-                  minLength="3"
                   value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Email</Form.Label>
-                <Form.Control 
-                  type="email" 
+                <Form.Control
+                  type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Contraseña</Form.Label>
-                <Form.Control 
-                  type="password" 
+                <Form.Control
+                  type="password"
                   required
-                  minLength="6"
+                  minLength={6}
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Teléfono</Form.Label>
-                <Form.Control 
-                  type="tel" 
+                <Form.Control
+                  type="tel"
                   required
                   pattern="[0-9]{4}-[0-9]{4}"
                   placeholder="Ej: 8888-8888"
                   value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Provincia</Form.Label>
-                <Form.Select 
+                <Form.Select
                   required
                   value={formData.province}
-                  onChange={(e) => setFormData({...formData, province: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, province: e.target.value })}
                 >
                   <option value="">Seleccionar provincia</option>
                   {provinces.map(p => <option key={p} value={p}>{p}</option>)}
                 </Form.Select>
               </Form.Group>
               {error && <div className="text-danger mb-3">{error}</div>}
-              <Button variant="primary" type="submit" className="w-100">
-                Registrarse
+              <Button variant="primary" type="submit" className="w-100" disabled={loading}>
+                {loading ? "Registrando..." : "Registrarse"}
               </Button>
             </Form>
           </Tab>
