@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { auth, db } from '../firebase';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { db } from '../firebase';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
 
 const binderTypes = ['3x3', '4x4', '2x2', 'Jumbo'];
 
@@ -16,7 +16,7 @@ const binderStyles = [
 ];
 
 export default function Binders() {
-  const [user, setUser] = useState(null);
+  const { user, userData, syncUserData } = useCart();
   const [binders, setBinders] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -26,17 +26,14 @@ export default function Binders() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBinders = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       try {
         const q = query(collection(db, 'binders'), where('ownerId', '==', user.uid));
         const snapshot = await getDocs(q);
@@ -44,6 +41,9 @@ export default function Binders() {
         setBinders(data);
       } catch (err) {
         console.error("Error al cargar binders:", err);
+        setError("Error al cargar binders");
+      } finally {
+        setLoading(false);
       }
     };
     fetchBinders();
@@ -53,6 +53,12 @@ export default function Binders() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    
+    if (!user) {
+      setError("Debes iniciar sesión para crear binders");
+      return;
+    }
+    
     if (!formData.type || !formData.style) {
       setError("Por favor completa todos los campos");
       return;
@@ -63,13 +69,29 @@ export default function Binders() {
         return;
       }
 
-      await addDoc(collection(db, 'binders'), {
+      const binderData = {
         ...formData,
         ownerId: user.uid,
+        ownerName: userData?.username || userData?.displayName || user.email,
         createdAt: new Date(),
+        updatedAt: new Date(),
         mode: 'colección',
         cards: []
+      };
+
+      // Crear el binder en Firestore
+      const binderRef = await addDoc(collection(db, 'binders'), binderData);
+
+      // Actualizar el documento del usuario con el nuevo binder
+      const userRef = doc(db, 'users', user.uid);
+      const currentBinders = userData?.binders || [];
+      await updateDoc(userRef, {
+        binders: [...currentBinders, binderRef.id],
+        updatedAt: new Date()
       });
+
+      // Sincronizar datos del usuario
+      await syncUserData();
 
       setSuccess("Binder creado con éxito");
       setShowModal(false);
@@ -80,17 +102,39 @@ export default function Binders() {
     }
   };
 
+  if (loading) {
+    return (
+      <Container className="py-5 text-center">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+      </Container>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="section">
       <Container className="py-5">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2 className="section-title">Mis Binders</h2>
-          <Button onClick={() => setShowModal(true)} disabled={!user || binders.length >= 4}>
-            Crear nuevo Binder
-          </Button>
+          {user ? (
+            <Button onClick={() => setShowModal(true)} disabled={binders.length >= 4}>
+              Crear nuevo Binder
+            </Button>
+          ) : (
+            <Button variant="outline-primary" disabled>
+              Inicia sesión para crear binders
+            </Button>
+          )}
         </div>
 
-        {binders.length === 0 && <p className="text-muted">Aún no has creado binders.</p>}
+        {!user && (
+          <Alert variant="info" className="mb-4">
+            <strong>Inicia sesión</strong> para crear y gestionar tus binders de cartas.
+          </Alert>
+        )}
+
+        {binders.length === 0 && user && <p className="text-muted">Aún no has creado binders.</p>}
 
         <Row className="g-4">
           {binders.map(binder => {
@@ -101,6 +145,11 @@ export default function Binders() {
                   <Card.Body className="text-white">
                     <h5 className="mb-2">Tipo: {binder.type}</h5>
                     <p className="text-white-50 small">{binder.description || "Sin descripción"}</p>
+                    <div className="mb-2">
+                      <small className="text-white-50">
+                        {binder.cards?.length || 0} cartas
+                      </small>
+                    </div>
                     <Button
                       as={Link}
                       to={`/binder/${binder.id}`}

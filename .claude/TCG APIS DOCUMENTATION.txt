@@ -1,0 +1,438 @@
+Introduction
+Welcome to use API TCG, the purpose of this API is to expose the card data of each TCG.
+
+Authentication
+The API TCG uses, API Key to authenticate requests. Sign up for an account at the API TCG Platform to get your API key.
+
+Authentication to the API is performed via the x-api-key header. Provide your API key in the headers of all requests to authenticate to the API TCG.
+
+Example request
+curl --location 'https://apitcg.com/api/one-piece/cards?name=luffy' \
+--header 'x-api-key: MY-API-KEY' 
+
+
+Cards
+TCG Available
+For now it is only available for:
+
+Pokémon
+One Piece
+Dragon Ball Fusion
+Digimon
+Magic The Gathering
+Union arena
+Gundam
+Star Wars (Coming soon)
+Mitos y leyendas (Coming soon)
+How to use
+To consume this API, you must use the following URL:
+
+One Piece, https://apitcg.com/api/one-piece/cards
+Pokémon, https://apitcg.com/api/pokemon/cards
+Dragon Ball Fusion, https://apitcg.com/api/dragon-ball-fusion/cards
+Digimon, https://apitcg.com/api/digimon/cards
+Magic, https://apitcg.com/api/magic/cards
+Union Arena, https://apitcg.com/api/union-arena/cards
+Gundam, https://apitcg.com/api/gundam/cards
+This API receives two parameters, property and value, where property is the property you want to filter and value, the value you want to search.
+
+One Piece
+Example request
+https://apitcg.com/api/one-piece/cards?name=luffy
+
+Example response
+{
+    "page": 1,
+    "limit": 25,
+    "total": 61,
+    "totalPages": 3,
+    "data": [
+        {
+            "id": "OP03-070",
+            "code": "OP03-070",
+            "rarity": "R",
+            "type": "CHARACTER",
+            "name": "Monkey.D.Luffy",
+            "images": {
+                "small": "https://en.onepiece-cardgame.com/images/cardlist/card/OP03-070.png",
+                "large": "https://en.onepiece-cardgame.com/images/cardlist/card/OP03-070.png"
+            },
+            "cost": 6,
+            "attribute": {
+                "name": "Strike",
+                "image": "https://en.onepiece-cardgame.com/images/cardlist/attribute/ico_type01.png"
+            },
+            "power": 7000,
+            "counter": "-",
+            "color": "Purple",
+            "family": "Water Seven/Straw Hat Crew",
+            "ability": "[On Play] DON!! −1 (You may return the specified number of DON!! cards from your field to your DON!! deck.) You may trash 1 Character card with a cost of 5 from your hand: This Character gains [Rush] during this turn.<br>(This card can attack on the turn in which it is played.)",
+            "trigger": "",
+            "set": {
+                "name": "-PILLARS OF STRENGTH- [OP03]"
+            },
+            "notes": []
+        },
+        ...
+    ]
+}
+
+
+Available properties
+These are the properties you can use to filter the available cards:
+
+id
+code
+rarity
+type
+name
+cost
+power
+counter
+color
+family
+ability
+trigger
+Pokémon
+Example request
+https://apitcg.com/api/pokemon/cards?name=charizard
+
+Example response
+{
+    "data": [
+        {
+            "id": "base1-4",
+            "name": "Charizard",
+            "supertype": "Pokémon",
+            "subtypes": [
+                "Stage 2"
+            ],
+            "level": "76",
+            "hp": "120",
+            "types": [
+                "Fire"
+            ],
+            "evolvesFrom": "Charmeleon",
+            "abilities": [
+                {
+                    "name": "Energy Burn",
+                    "text": "As often as you like during your turn (before your attack), you may turn all Energy attached to Charizard into Fire Energy for the rest of the turn. This power can't be used if Charizard is Asleep, Confused, or Paralyzed.",
+                    "type": "Pokémon Power"
+                }
+            ],
+            "attacks": [
+                {
+                    "name": "Fire Spin",
+                    "cost": [
+                        "Fire",
+                        "Fire",
+                        "Fire",
+                        "Fire"
+                    ],
+                    "convertedEnergyCost": 4,
+                    "damage": "100",
+                    "text": "Discard 2 Energy cards attached to Charizard in order to use this attack."
+                }
+            ],
+            "weaknesses": [
+                {
+                    "type": "Water",
+                    "value": "×2"
+                }
+            ],
+            "resistances": [
+                {
+                    "type": "Fighting",
+                    "value": "-30"
+                }
+            ],
+            "retreatCost": [
+                "Colorless",
+                "Colorless",
+                "Colorless"
+            ],
+            "convertedRetreatCost": 3,
+            "number": "4",
+            "artist": "Mitsuhiro Arita",
+            "rarity": "Rare Holo",
+            "flavorText": "Spits fire that is hot enough to melt boulders. Known to unintentionally cause forest fires.",
+            "nationalPokedexNumbers": [
+                6
+            ],
+            "legalities": {
+                "unlimited": "Legal"
+            },
+            "images": {
+                "small": "https://images.pokemontcg.io/base1/4.png",
+                "large": "https://images.pokemontcg.io/base1/4_hires.png"
+            }
+        },
+        ...
+    ],
+    "totalCount": 99
+}
+
+
+Available properties
+These are the properties you can use to filter the available cards:
+
+id
+name
+Dragon Ball Fusion
+Example request
+https://apitcg.com/api/dragon-ball-fusion/cards?name=goku
+
+Example response
+{
+    "data": [
+         {
+            "id": "FB01-001",
+            "code": "FB01-001",
+            "rarity": "L",
+            "name": "Son Goku",
+            "color": "Red",
+            "images": {
+                "small": "https://www.dbs-cardgame.com/fw/images/cards/card/en/FB01-001_f.webp",
+                "large": "https://www.dbs-cardgame.com/fw/images/cards/card/en/FB01-001_f.webp"
+            },
+            "cardType": "LEADER",
+            "cost": "-",
+            "specifiedCost": "-",
+            "power": "15000",
+            "comboPower": "-",
+            "features": "Saiyan/Universe 7",
+            "effect": "[When Attacking] Draw 1 card.<br>[Awaken] When your life is at 4 or less, draw 1 card. Then, flip this card over.",
+            "getIt": "BOOSTER PACK -AWAKENED PULSE- [FB01]",
+            "set": {
+                "id": "fb01",
+                "name": "Awakened pulse"
+            }
+        },
+        ...
+    ],
+    "totalCount": 99
+}
+
+
+Available properties
+These are the properties you can use to filter the available cards:
+
+id
+code
+rarity
+name
+color
+cardType
+cost
+specifiedCost
+power
+comboPower
+features
+effect
+getIt
+Digimon
+Example request
+https://apitcg.com/api/digimon/cards?name=gallantmon
+
+Example response
+{
+    "page": 1,
+    "limit": 25,
+    "total": 35,
+    "totalPages": 2,
+    "data": [
+        {
+            "id": "ST7-09",
+            "code": "ST7-09",
+            "name": "Gallantmon",
+            "level": "Lv.6",
+            "colors": [
+                "Red"
+            ],
+            "images": {
+                "small": "https://world.digimoncard.com/images/cardlist/card/ST7-09.png",
+                "large": "https://world.digimoncard.com/images/cardlist/card/ST7-09.png"
+            },
+            "cardType": "Digimon",
+            "form": "Mega",
+            "attribute": "Virus",
+            "type": "Holy Warrior/Royal Knight",
+            "dp": "11000",
+            "playCost": "11",
+            "digivolveCost1": "3 from Lv.5",
+            "digivolveCost2": "-",
+            "effect": "＜Security Attack +1＞ (This Digimon checks 1\n                            additional security card.)[When Attacking] Delete 1\n                            of your opponent's Digimon with 4000 DP or less. If\n                            no Digimon was deleted by this effect, this Digimon\n                            gets +3000 DP for the turn.",
+            "inheritedEffect": "-",
+            "securityEffect": "-",
+            "notes": "<a href=\"/products/deck/st-7.php\">▹Starter Deck, GALLANTMON [ST-7]</a>",
+            "set": {
+                "id": "st7",
+                "name": "Starter Deck Gallantmon"
+            }
+        },
+        ...
+    ]
+}
+
+
+Available properties
+These are the properties you can use to filter the available cards:
+
+id
+code
+rarity
+name
+Union Arena
+Example request
+https://apitcg.com/api/union-arena/cards?name=gon
+
+Example response
+{
+    "data": [
+        {
+            "id": "HTR-1-005",
+            "code": "HTR-1-005",
+            "url": "https://www.unionarena-tcg.com/na/cardlist/./detail_iframe.php?card_no=UE02BT/HTR-1-005",
+            "name": "Gon Freecss",
+            "rarity": "C",
+            "ap": "1",
+            "type": "Character",
+            "bp": "1500",
+            "affinity": "-",
+            "effect": "\n                 Draw a card, then place one card from your hand into your sideline.              ",
+            "trigger": "Draw a card.",
+            "images": {
+                "small": "https://www.unionarena-tcg.com/na/images/cardlist/card/UE02BT_HTR-1-005.png",
+                "large": "https://www.unionarena-tcg.com/na/images/cardlist/card/UE02BT_HTR-1-005.png"
+            },
+            "set": {
+                "name": "HUNTER X HUNTER"
+            },
+            "needEnergy": {
+                "value": "Blue-",
+                "logo": "https://www.unionarena-tcg.com/na/images/cardlist/icon/need/ico_character_energy_blue0.png"
+            }
+        },
+        ...
+    ],
+    "totalCount": 99
+}
+
+
+Available properties
+These are the properties you can use to filter the available cards:
+
+...
+Gundam
+Example request
+https://apitcg.com/api/gundam/cards?name=strike
+
+Example response
+{
+    "page": 1,
+    "limit": 25,
+    "total": 7,
+    "totalPages": 1,
+    "data": [
+        {
+            "id": "ST04-001",
+            "code": "ST04-001",
+            "rarity": "LR",
+            "name": "Aile Strike Gundam",
+            "images": {
+                "small": "https://www.gundam-gcg.com/en/images/cards/card/ST04-001.webp",
+                "large": "https://www.gundam-gcg.com/en/images/cards/card/ST04-001.webp"
+            },
+            "level": "5",
+            "cost": "4",
+            "color": "White",
+            "cardType": "UNIT",
+            "effect": "&lt;Blocker&gt; (Rest this Unit to change the attack target to it.)<br>【When Paired･Lv.4 or Higher Pilot】Choose 1 enemy Unit with 4 or less HP. Return it to its owner's hand.<br>",
+            "zone": "Space / Earth",
+            "trait": "(Earth Alliance)",
+            "link": "[Kira Yamato]",
+            "ap": "4",
+            "hp": "4",
+            "sourceTitle": "Mobile Suit Gundam SEED",
+            "getIt": "Edition Beta",
+            "set": {
+                "id": "beta",
+                "name": "Beta"
+            }
+        }
+    ]
+}
+
+
+Available properties
+These are the properties you can use to filter the available cards:
+
+id
+code
+name
+rarity
+color
+cardType
+effect
+zone
+trait
+link
+ap
+hp
+sourceTitle
+getIt
+
+
+Card
+Get a specific card if you have the ID
+How to use
+https://apitcg.com/api/[tcg]/cards/[id]
+
+Example request
+https://apitcg.com/api/one-piece/cards/OP06-014
+
+Example response
+{
+    "data": {
+        "id": "OP06-014",
+        "code": "OP06-014",
+        "rarity": "C",
+        "type": "CHARACTER",
+        "name": "Ratchet",
+        "images": {
+            "small": "https://en.onepiece-cardgame.com/images/cardlist/card/OP06-014.png?240222",
+            "large": "https://en.onepiece-cardgame.com/images/cardlist/card/OP06-014.png?240222"
+        },
+        "cost": 1,
+        "attribute": {
+            "name": "Wisdom",
+            "image": "https://en.onepiece-cardgame.com/images/cardlist/attribute/ico_type05.png"
+        },
+        "power": null,
+        "counter": "1000",
+        "color": "Red",
+        "family": "FILM/Mecha Island",
+        "ability": "[On Your Opponent's Attack] You may trash any number of {FILM} type cards from your hand. Your Leader or 1 of your Characters gains +1000 power during this battle for every card trashed.",
+        "trigger": "",
+        "set": {
+            "name": "-WINGS OF THE CAPTAIN-[OP06]"
+        },
+        "notes": []
+    }
+}
+
+
+Pagination
+Available properties
+limit, Define the limit of items to be displayed per query, the maximum is 100.
+page, The page you want to show of the total items.
+Example use limit property
+https://apitcg.com/api/pokemon/cards?limit=60
+
+Example use page property
+https://apitcg.com/api/pokemon/cards?page=2
+
+Example full request
+https://apitcg.com/api/pokemon/cards?name=charizard&limit=50&page=2
+
+
