@@ -250,16 +250,18 @@ export default function SellCardModal({ show, handleClose }) {
       let response, data, fetchedCards = [], totalCount = 0;
       
       if (config.api === 'pokemon') {
-        // API de Pokémon TCG (original)
+        // API de Pokémon TCG v2 con sintaxis correcta
         let queryTerm;
         if (sanitizedTerm.includes(' ')) {
-          queryTerm = encodeURIComponent(`"${sanitizedTerm}"`);
+          // Búsqueda exacta para frases
+          queryTerm = `name:"${sanitizedTerm}"`;
         } else {
-          queryTerm = encodeURIComponent(sanitizedTerm + '*');
+          // Búsqueda con wildcard para términos simples
+          queryTerm = `name:${sanitizedTerm}*`;
         }
         
         response = await fetch(
-          `${config.endpoint}?q=name:${queryTerm}&page=${page}&pageSize=8`,
+          `${config.endpoint}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=8`,
           { 
             headers: config.headers,
             timeout: 10000

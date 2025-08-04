@@ -229,13 +229,18 @@ export default function Marketplace() {
 
       // Búsqueda específica por juego
       if (gameConfig.apiType === 'pokemon') {
-        // API de Pokémon TCG (original)
-        const queryTerm = sanitizedTerm.includes(' ') 
-          ? encodeURIComponent(`"${sanitizedTerm}"`)
-          : encodeURIComponent(sanitizedTerm + '*');
+        // API de Pokémon TCG v2 con sintaxis correcta
+        let queryTerm;
+        if (sanitizedTerm.includes(' ')) {
+          // Búsqueda exacta para frases
+          queryTerm = `name:"${sanitizedTerm}"`;
+        } else {
+          // Búsqueda con wildcard para términos simples
+          queryTerm = `name:${sanitizedTerm}*`;
+        }
 
         const response = await fetch(
-          `${gameConfig.apiUrl}?q=${gameConfig.searchParam}:${queryTerm}&page=${page}&pageSize=10`,
+          `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=10`,
           { 
             headers: { 'X-Api-Key': gameConfig.apiKey },
             timeout: 10000
