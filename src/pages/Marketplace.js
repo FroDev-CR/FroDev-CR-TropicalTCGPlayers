@@ -148,7 +148,7 @@ const SellerRating = ({ sellerId }) => {
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGame, setSelectedGame] = useState('pokemon');
+  // Eliminar selectedGame - ahora buscaremos en todos los TCGs
   const [cards, setCards] = useState([]);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -211,7 +211,7 @@ export default function Marketplace() {
       }
 
       // Check cache first
-      const cacheKey = `${selectedGame}-${sanitizedTerm}-${page}`;
+      const cacheKey = `all-tcgs-${sanitizedTerm}-${page}`;
       if (!skipCache && searchCache[cacheKey]) {
         const cached = searchCache[cacheKey];
         setCards(cached.cards);
@@ -223,153 +223,55 @@ export default function Marketplace() {
         return;
       }
 
-      const gameConfig = TCG_GAMES[selectedGame];
-      let fetchedCards = [];
+      // Buscar directamente en listings (cartas ya publicadas para venta)
+      let fetchedListings = [];
       let totalCount = 0;
 
-      // Búsqueda específica por juego
-      if (gameConfig.apiType === 'pokemon') {
-        // API de Pokémon TCG v2 con sintaxis correcta
-        let queryTerm;
-        if (sanitizedTerm.includes(' ')) {
-          // Búsqueda exacta para frases
-          queryTerm = `name:"${sanitizedTerm}"`;
-        } else {
-          // Búsqueda con wildcard para términos simples
-          queryTerm = `name:${sanitizedTerm}*`;
-        }
-
-        const response = await fetch(
-          `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=10`,
-          { 
-            headers: { 'X-Api-Key': gameConfig.apiKey },
-            timeout: 10000
-          }
-        );
-
-        if (!response.ok) {
-          if (response.status === 400) {
-            throw new Error('Término de búsqueda inválido. Prueba con "Charizard", "Pikachu ex", etc.');
-          } else if (response.status === 429) {
-            throw new Error('Demasiadas búsquedas. Espera un momento y vuelve a intentar.');
-          } else if (response.status >= 500) {
-            throw new Error('Servicio temporalmente no disponible. Inténtalo más tarde.');
-          }
-          throw new Error(`Error en la búsqueda (${response.status})`);
-        }
-
-        const data = await response.json();
-        if (!data?.data || !Array.isArray(data.data)) {
-          throw new Error('No se encontraron resultados para tu búsqueda');
-        }
-
-        fetchedCards = data.data;
-        totalCount = data.totalCount || fetchedCards.length;
-        
-      } else if (gameConfig.apiType === 'tcgapi') {
-        // API de TCG para otros juegos - Usar proxy local en desarrollo
-        const isProduction = process.env.NODE_ENV === 'production';
-        const apiUrl = isProduction 
-          ? gameConfig.apiUrl 
-          : gameConfig.apiUrl.replace('https://www.apitcg.com/api', '/api/tcg');
-        
-        const response = await fetch(
-          `${apiUrl}?${gameConfig.searchParam}=${encodeURIComponent(sanitizedTerm)}&limit=10&page=${page}`,
-          { 
-            headers: isProduction ? { 'x-api-key': gameConfig.apiKey } : {},
-            timeout: 10000
-          }
-        );
-
-        if (!response.ok) {
-          let errorMessage = `Error buscando cartas de ${gameConfig.name}`;
-          if (response.status === 401) {
-            errorMessage = 'Error de autenticación con la API';
-          } else if (response.status === 429) {
-            errorMessage = 'Demasiadas búsquedas. Espera un momento y vuelve a intentar.';
-          } else if (response.status >= 500) {
-            errorMessage = 'Servicio temporalmente no disponible. Inténtalo más tarde.';
-          }
-          throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-        
-        // Manejar diferentes estructuras de respuesta de la API de TCG
-        let cards = [];
-        if (data?.data) {
-          if (Array.isArray(data.data)) {
-            cards = data.data;
-          } else {
-            cards = [data.data];
-          }
-        } else if (Array.isArray(data)) {
-          cards = data;
-        }
-
-        if (cards.length === 0) {
-          throw new Error(`No se encontraron cartas de ${gameConfig.name} para tu búsqueda`);
-        }
-
-        // Adaptar formato de la API de TCG al formato común
-        fetchedCards = cards.map(card => ({
-          id: card.id || card.code,
-          name: card.name,
-          images: { 
-            small: card.images?.small || card.images?.large || 'https://via.placeholder.com/200',
-            large: card.images?.large || card.images?.small || 'https://via.placeholder.com/400'
-          },
-          set: { 
-            name: card.set?.name || card.getIt || card.sourceTitle || `${gameConfig.name} Set`
-          },
-          rarity: card.rarity || 'Common',
-          type: card.type || card.cardType || card.form || 'Unknown',
-          // Campos específicos por juego
-          cost: card.cost || card.playCost || card.specifiedCost,
-          power: card.power || card.dp || card.ap || card.bp,
-          color: card.color || (card.colors ? card.colors.join('/') : null),
-          attribute: card.attribute?.name || card.attribute,
-          ability: card.ability || card.effect,
-          family: card.family || card.features || card.trait
-        }));
-        
-        totalCount = data.total || data.totalCount || cards.length;
-
-      } else {
-        throw new Error(`API para ${gameConfig.name} no está configurada correctamente.`);
-      }
-
-      // Buscar listings existentes para las cartas encontradas
-      const cardIds = fetchedCards.map(c => c.id);
-      let fetchedListings = [];
-      
-      if (cardIds.length > 0) {
-        // Buscar en lotes para evitar límites de Firestore
-        const batchSize = 10;
-        for (let i = 0; i < cardIds.length; i += batchSize) {
-          const batch = cardIds.slice(i, i + batchSize);
-          const listingsQuery = query(
-            collection(db, 'listings'), 
-            where('cardId', 'in', batch),
-            where('status', '==', 'active')
-          );
-          const listingsSnapshot = await getDocs(listingsQuery);
-          const batchListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-          fetchedListings = [...fetchedListings, ...batchListings];
-        }
-      }
-
-      // Solo mostrar cartas que tienen listings activos
-      const filteredCards = fetchedCards.filter(card =>
-        fetchedListings.some(listing => listing.cardId === card.id)
+      // Buscar directamente en listings de Firestore (cartas ya publicadas)
+      const listingsQuery = query(
+        collection(db, 'listings'),
+        where('status', '==', 'active'),
+        orderBy('createdAt', 'desc'),
+        limit(50) // Limitar resultados para mejor rendimiento
       );
+      
+      const listingsSnapshot = await getDocs(listingsQuery);
+      const allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Filtrar listings que coincidan con el término de búsqueda
+      fetchedListings = allListings.filter(listing => 
+        listing.cardName && listing.cardName.toLowerCase().includes(sanitizedTerm.toLowerCase())
+      );
+      
+      // Crear cards únicos basados en los listings
+      const uniqueCards = [];
+      const seenCardIds = new Set();
+      
+      fetchedListings.forEach(listing => {
+        if (!seenCardIds.has(listing.cardId)) {
+          seenCardIds.add(listing.cardId);
+          uniqueCards.push({
+            id: listing.cardId,
+            name: listing.cardName,
+            images: { 
+              small: listing.cardImage,
+              large: listing.cardImage
+            },
+            set: { name: listing.setName || 'Desconocido' },
+            rarity: listing.rarity || 'Sin rareza',
+            tcgType: listing.tcgType || 'unknown'
+          });
+        }
+      });
+
+      totalCount = uniqueCards.length;
 
       const itemsPerPage = 10;
       const calculatedPages = Math.ceil(totalCount / itemsPerPage);
 
       // Cache results
       const cacheData = {
-        cards: filteredCards,
+        cards: uniqueCards,
         listings: fetchedListings,
         totalResults: totalCount,
         totalPages: calculatedPages
@@ -380,14 +282,14 @@ export default function Marketplace() {
         [cacheKey]: cacheData
       }));
 
-      setCards(filteredCards);
+      setCards(uniqueCards);
       setListings(fetchedListings);
       setTotalResults(totalCount);
       setTotalPages(calculatedPages);
       setCurrentPage(page);
 
-      if (filteredCards.length === 0 && fetchedCards.length > 0) {
-        setSearchError('Se encontraron cartas, pero no hay vendedores disponibles en este momento.');
+      if (uniqueCards.length === 0) {
+        setSearchError('No se encontraron cartas en venta que coincidan con tu búsqueda.');
       }
 
     } catch (error) {
@@ -399,7 +301,7 @@ export default function Marketplace() {
       setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
     }
     setLoading(false);
-  }, [searchTerm, selectedGame, searchCache]);
+  }, [searchTerm, searchCache]);
 
   const handlePagination = useCallback((newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -479,7 +381,7 @@ export default function Marketplace() {
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
           <div className="mb-3 mb-md-0">
             <h2 className="section-title mb-2">🏪 Marketplace</h2>
-            <p className="text-muted mb-0">Encuentra las mejores cartas de Pokémon TCG</p>
+            <p className="text-muted mb-0">Encuentra cartas de Pokémon, One Piece, Dragon Ball y más TCGs</p>
           </div>
           <div className="d-flex gap-2">
             <Button 
@@ -493,33 +395,6 @@ export default function Marketplace() {
           </div>
         </div>
 
-        {/* Selector de juego TCG */}
-        <div className="mb-4">
-          <div className="d-flex flex-wrap gap-2 justify-content-center mb-3">
-            {Object.entries(TCG_GAMES)
-              .filter(([key, game]) => game.available)
-              .map(([key, game]) => (
-                <Button
-                  key={key}
-                  variant={selectedGame === key ? "primary" : "outline-primary"}
-                  onClick={() => {
-                    setSelectedGame(key);
-                    setSearchCache({}); // Limpiar cache al cambiar juego
-                    if (searchTerm.trim()) {
-                      // Re-buscar con el nuevo juego seleccionado
-                      setTimeout(() => searchCards(1, true), 100);
-                    }
-                  }}
-                  className="d-flex align-items-center gap-2"
-                  size="sm"
-                >
-                  <FaGamepad size={14} />
-                  <span>{game.icon}</span>
-                  <span>{game.name}</span>
-                </Button>
-              ))}
-          </div>
-        </div>
 
         {/* Barra de búsqueda mejorada */}
         <div className="mb-4">
@@ -529,7 +404,7 @@ export default function Marketplace() {
             </span>
             <Form.Control
               type="text"
-              placeholder={`Buscar en ${TCG_GAMES[selectedGame].name} (ej: ${selectedGame === 'pokemon' ? '"Charizard ex", "Pikachu V"' : selectedGame === 'yugioh' ? '"Blue Eyes", "Dark Magician"' : selectedGame === 'magic' ? '"Lightning Bolt", "Black Lotus"' : 'nombre de carta'}...)`}
+              placeholder="Buscar cartas en todos los TCGs (ej: Charizard, Luffy, Goku, Agumon...)"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchCards(1, true)}
@@ -562,7 +437,7 @@ export default function Marketplace() {
           {totalResults > 0 && (
             <div className="d-flex justify-content-between align-items-center">
               <div className="text-muted small">
-                <strong>{TCG_GAMES[selectedGame].name}:</strong> Mostrando {(currentPage - 1) * 10 + 1} - {Math.min(currentPage * 10, totalResults)} de {totalResults} resultados
+                <strong>Cartas en venta:</strong> Mostrando {(currentPage - 1) * 10 + 1} - {Math.min(currentPage * 10, totalResults)} de {totalResults} resultados
               </div>
             </div>
           )}

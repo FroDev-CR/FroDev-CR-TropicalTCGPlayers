@@ -3,149 +3,199 @@
 ## 🎯 **Estado Actual del Proyecto**
 
 ### **Completado ✅**
-- **Sistema de Reputación Robusto** (Prioridad 2)
-- **Sistema de Checkout Mejorado** (Prioridad 3.1)
-- **Gestión de Inventario en Tiempo Real** (Prioridad 3.2)
+- **Limpieza de Aplicación** - Eliminación de páginas innecesarias
+- **Integración Multi-TCG API** - Soporte para 7 juegos de cartas diferentes
+- **Sistema de Proxy CORS** - Solución para APIs externas en desarrollo
+- **Sistema de Transacciones Integrado** - Movido a página de perfil
+- **Sistema de Reputación** - Calificaciones y reportes validados
+- **Sistema de Checkout Mejorado** - Modal elegante con múltiples contactos
+- **Gestión de Inventario** - Control de stock en tiempo real
+- **Despliegue en Producción** - Aplicación funcionando en Vercel
 
 ### **En Progreso 🔄**
-- **Dashboard de Vendedor con Estadísticas** (Prioridad 3.3)
+- **Debug API Pokémon TCG** - Búsquedas infinitas sin resultados
+- **Índices de Firestore** - Falta crear índice para transacciones
 
 ### **Pendiente ⏳**
-- **Sistema de Reservas Temporales** (Prioridad 3.4)
-- **Mejoras de UX/UI** (Prioridad 4)
-- **Funcionalidades Avanzadas** (Prioridad 5)
-- **Seguridad** (Prioridad 6 - para producción)
+- **Dashboard de Vendedor** - Estadísticas y gestión avanzada
+- **Sistema de Reservas Temporales** - Stock temporal en carrito
+- **Mejoras de UX/UI** - Pulimiento general
+- **Seguridad** - Variables de entorno y validaciones
 
 ---
 
 ## 🏗️ **Arquitectura Implementada**
 
-### **Componentes Nuevos Creados:**
+### **Estructura Actual del Proyecto:**
 ```
 src/
 ├── components/
 │   ├── RatingSystem.js ✅ - Sistema de calificaciones validado
-│   └── ReportSystem.js ✅ - Sistema de reportes de usuarios
+│   ├── ReportSystem.js ✅ - Sistema de reportes de usuarios
+│   ├── SellCardModal.js ✅ - Modal venta con 7 TCGs + fallbacks
+│   ├── Navbar.js ✅ - Navegación limpia (sin Catalog/LivePage)
+│   └── Footer.js ✅ - Footer actualizado
 ├── pages/
-│   └── Transactions.js ✅ - Página de gestión de transacciones
-└── hooks/
-    └── useInventory.js ✅ - Hook para gestión de inventario
+│   ├── Profile.js ✅ - Perfil + transacciones integradas
+│   ├── Marketplace.js ✅ - Multi-TCG marketplace con proxy
+│   ├── Cart.js ✅ - Carrito con checkout modal
+│   └── Binders.js ✅ - Gestión de colecciones
+├── hooks/
+│   └── useInventory.js ✅ - Hook para gestión de inventario
+├── contexts/
+│   └── CartContext.js ✅ - Estado global + transacciones
+└── setupProxy.js ✅ - Proxy para CORS en desarrollo
 ```
 
-### **Componentes Modificados:**
-```
-src/
-├── App.js ✅ - Nueva ruta /transacciones
-├── components/
-│   ├── Navbar.js ✅ - Enlace a transacciones
-│   └── SellCardModal.js ✅ - Campo availableQuantity
-├── contexts/
-│   └── CartContext.js ✅ - Inventario + transacciones mejoradas
-└── pages/
-    ├── Cart.js ✅ - Checkout modal con múltiples contactos
-    └── Marketplace.js ✅ - Sistema de inventario + reportes
+### **Páginas Eliminadas:**
+- ❌ `src/pages/Catalog.js` - Funcionalidad duplicada
+- ❌ `src/pages/LivePage.js` - No necesaria en MVP
+- ❌ `src/pages/Transactions.js` - Integrada en Profile.js
+
+---
+
+## 🎮 **Sistema Multi-TCG Implementado**
+
+### **APIs Integradas:**
+1. **Pokémon TCG** ⚡ - `https://api.pokemontcg.io/v2/cards`
+   - ❌ **PROBLEMA ACTUAL:** Búsquedas infinitas sin resultados
+   - API Key: `1f1c90be-e3da-4ff5-9753-8a662f20c2f0`
+
+2. **TCG APIs (6 juegos)** ✅ - `https://www.apitcg.com/api/`
+   - ✅ One Piece - Funcionando
+   - ✅ Dragon Ball Fusion - Funcionando  
+   - ✅ Digimon - Funcionando
+   - ✅ Magic: The Gathering - Funcionando
+   - ✅ Union Arena - Funcionando
+   - ✅ Gundam - Funcionando
+   - API Key: `dfdafe3318674ef4614e77913b6e2b85f80433d413f03c082503edb68d77ef2b`
+
+### **Configuración de TCGs:**
+```javascript
+const TCG_CONFIGS = {
+  pokemon: { 
+    api: 'pokemon', 
+    endpoint: 'https://api.pokemontcg.io/v2/cards',
+    searchParam: 'name'
+  },
+  onepiece: { 
+    api: 'tcgapis', 
+    endpoint: 'https://www.apitcg.com/api/one-piece/cards' 
+  },
+  dragonball: { 
+    api: 'tcgapis', 
+    endpoint: 'https://www.apitcg.com/api/dragon-ball-fusion/cards' 
+  },
+  // ... más configuraciones
+};
 ```
 
 ---
 
-## 🎯 **Sistema de Prioridades Establecido**
+## 🌐 **Solución CORS y Proxy**
 
-### **PRIORIDAD 1 - Seguridad (Para Producción)**
-- [ ] Mover API keys a variables de entorno
-- [ ] Implementar validación de permisos en Firestore
-- [ ] Sanitizar todas las entradas de usuario
+### **Problema Identificado:**
+- APIs externas bloquean requests por CORS policy
+- Redirects de `apitcg.com` → `www.apitcg.com` causan errores
 
-### **PRIORIDAD 2 - Sistema de Reputación ✅ COMPLETADO**
-- [x] Solo usuarios que compraron pueden calificar
-- [x] Una calificación por transacción
-- [x] Sistema de reportes de usuarios
-- [x] Historial de transacciones para validación
-- [x] UI mejorada del sistema de rating
+### **Solución Implementada:**
+```javascript
+// setupProxy.js - Para desarrollo local
+app.use('/api/tcg', createProxyMiddleware({
+  target: 'https://www.apitcg.com',
+  changeOrigin: true,
+  pathRewrite: { '^/api/tcg': '/api' }
+}));
 
-### **PRIORIDAD 3 - Mejoras del Marketplace**
-
-#### **3.1 Sistema de Checkout Mejorado ✅ COMPLETADO**
-- [x] Modal de checkout elegante
-- [x] Múltiples formas de contacto (WhatsApp, Email, Teléfono)
-- [x] Campo de notas personalizadas
-- [x] Mensajes automáticos con ID de transacción
-
-#### **3.2 Gestión de Inventario ✅ COMPLETADO**
-- [x] Control de stock en tiempo real
-- [x] Badges visuales de disponibilidad
-- [x] Verificación antes de agregar al carrito
-- [x] Filtros de productos agotados
-- [x] Transacciones atómicas
-
-#### **3.3 Dashboard de Vendedor 🔄 EN PROGRESO**
-```
-Tareas Pendientes:
-- [ ] Crear página Dashboard (/dashboard)
-- [ ] Estadísticas de ventas (ingresos, productos vendidos)
-- [ ] Gestión de listings (editar, desactivar, stock)
-- [ ] Análisis de rendimiento por período
-- [ ] Vista de transacciones del vendedor
-- [ ] Gráficos con Chart.js o similar
+// En componentes - Detección de entorno
+const isProduction = process.env.NODE_ENV === 'production';
+const apiUrl = isProduction 
+  ? config.endpoint 
+  : config.endpoint.replace('https://www.apitcg.com/api', '/api/tcg');
 ```
 
-#### **3.4 Sistema de Reservas Temporales**
-```
-Tareas Pendientes:
-- [ ] Reserva temporal al agregar al carrito (15 min)
-- [ ] Sistema de expiración automática
-- [ ] Notificaciones de reservas por expirar
-- [ ] Liberación automática de stock
-```
-
-### **PRIORIDAD 4 - Experiencia de Usuario**
-- [ ] Búsqueda unificada (múltiples APIs de TCG)
-- [ ] Sistema de favoritos persistente
-- [ ] Notificaciones push
-- [ ] Chat interno básico
-- [ ] Modo oscuro
-
-### **PRIORIDAD 5 - Funcionalidades Avanzadas**
-- [ ] Integración con múltiples APIs de TCG
-- [ ] Sistema de subastas
-- [ ] Verificación de autenticidad de cartas
-- [ ] Analytics para vendedores
+### **Fallback System:**
+- ✅ Datos de ejemplo cuando CORS falla
+- ✅ Manejo elegante de errores
+- ✅ URLs corregidas con `www` prefix
 
 ---
 
 ## 🔧 **Funcionalidades Implementadas**
 
-### **Sistema de Transacciones**
+### **Sistema de Transacciones Integrado:**
 ```javascript
-Estados: initiated -> contacted -> completed -> rated
-Colecciones Firestore:
-- transactions: Historial completo de compras/ventas
-- ratings: Calificaciones validadas por transacción
-- reports: Sistema de reportes de usuarios
+// Ahora en Profile.js
+Estados: initiated → contacted → completed → rated
+Tabs: "Mis Compras" | "Mis Ventas"
+Componentes: StatusBadge, TransactionCard, RatingSystem
 ```
 
-### **Sistema de Inventario**
+### **Sistema Multi-TCG:**
+```javascript
+// SellCardModal.js y Marketplace.js
+- Selector de juego con iconos
+- APIs específicas por juego
+- Búsqueda inteligente con fallbacks
+- Manejo de diferentes estructuras de respuesta
+```
+
+### **Sistema de Inventario:**
 ```javascript
 Campos en listings:
 - quantity: Cantidad original
-- availableQuantity: Stock actual disponible
+- availableQuantity: Stock actual disponible  
 - status: 'active' | 'sold_out' | 'inactive'
-
-Funciones del contexto:
-- checkListingAvailability()
-- reduceListingQuantity()
-- addToCart() con validación
 ```
 
-### **Sistema de Checkout**
-```javascript
-Métodos de contacto:
-- whatsapp: Abre enlaces de WhatsApp
-- email: Abre ventanas de email
-- phone: Muestra información de contacto
+---
 
-Campos adicionales:
-- buyerNotes: Notas personalizadas
-- contactMethod: Método preferido
+## 🚀 **Despliegue y Producción**
+
+### **Estado del Despliegue:**
+- ✅ **Vercel:** Aplicación deployada y funcionando
+- ✅ **Firebase:** Base de datos conectada
+- ✅ **TCG APIs:** 6/7 funcionando correctamente
+- ❌ **Pokémon API:** Requiere debugging
+
+### **Variables de Entorno Necesarias:**
+```bash
+# Para producción futura
+REACT_APP_POKEMON_API_KEY=1f1c90be-e3da-4ff5-9753-8a662f20c2f0
+REACT_APP_TCG_API_KEY=dfdafe3318674ef4614e77913b6e2b85f80433d413f03c082503edb68d77ef2b
+```
+
+---
+
+## 🐛 **Problemas Conocidos y Debugging**
+
+### **CRÍTICO - API Pokémon TCG:**
+```
+❌ Síntomas: Búsqueda infinita sin resultados ni errores
+❌ Ubicación: SellCardModal.js - pestaña Pokémon
+❌ Logs Agregados: Console debugging para diagnosis
+❌ Posibles Causas:
+   - Sintaxis de query incorrecta
+   - Headers malformados
+   - Encoding issues
+   - Rate limiting silencioso
+```
+
+### **PENDIENTE - Firestore Índices:**
+```
+❌ Error: "The query requires an index"
+❌ Solución: Crear índice compuesto en Firebase Console
+❌ Colección: transactions
+❌ Campos: buyerId + createdAt (desc)
+```
+
+### **Debugging Agregado:**
+```javascript
+// En SellCardModal.js
+console.log('🔍 Pokémon API - URL:', url);
+console.log('🔍 Pokémon API - Query term:', queryTerm);
+console.log('🔍 Pokémon API - Headers:', config.headers);
+console.log('🔍 Pokémon API - Response data:', data);
 ```
 
 ---
@@ -157,48 +207,23 @@ Campos adicionales:
 {
   id: "auto-generated",
   buyerId: "user-uid",
-  buyerName: "Username",
+  buyerName: "Username", 
   buyerNotes: "Notas opcionales",
   items: [{
     listingId: "listing-id",
-    cardId: "pokemon-card-id",
+    cardId: "pokemon-card-id", 
     cardName: "Charizard ex",
     sellerId: "seller-uid",
+    tcgType: "pokemon", // NUEVO: identifica el tipo de TCG
     price: 25.00,
     quantity: 1,
     condition: "NM"
   }],
   totalAmount: 25.00,
   contactMethod: "whatsapp",
-  status: "initiated", // initiated -> contacted -> completed -> rated
+  status: "initiated",
   createdAt: Timestamp,
   updatedAt: Timestamp
-}
-```
-
-### **Colección: ratings**
-```javascript
-{
-  raterId: "user-uid",
-  ratedUserId: "seller-uid",
-  transactionId: "transaction-id",
-  rating: 5,
-  comment: "Excelente vendedor",
-  type: "seller_rating",
-  createdAt: Timestamp
-}
-```
-
-### **Colección: reports**
-```javascript
-{
-  reporterId: "user-uid",
-  reportedUserId: "reported-uid",
-  listingId: "listing-id", // opcional
-  reason: "fake_listing",
-  description: "Descripción detallada",
-  status: "pending", // pending -> under_review -> resolved -> dismissed
-  createdAt: Timestamp
 }
 ```
 
@@ -206,151 +231,187 @@ Campos adicionales:
 ```javascript
 {
   // Campos existentes...
-  quantity: 3, // Cantidad original
-  availableQuantity: 2, // Stock disponible actual
-  status: "active", // active | sold_out | inactive
-  // Campos nuevos agregados automáticamente
+  tcgType: "pokemon", // NUEVO: identifica el tipo de TCG
+  quantity: 3,
+  availableQuantity: 2, 
+  status: "active",
+  // Soporte multi-TCG agregado
 }
 ```
 
 ---
 
-## 🚀 **Próximos Pasos Recomendados**
+## 🚀 **Próximos Pasos Prioritarios**
 
-### **Immediate (Dashboard de Vendedor)**
-1. **Crear página Dashboard** (`/dashboard`)
-   ```bash
-   src/pages/Dashboard.js
-   ```
+### **URGENTE (Fixes):**
+1. **🔍 Debug API Pokémon TCG**
+   - Revisar console logs agregados
+   - Probar diferentes formatos de query
+   - Verificar headers y authentication
+   - Considerar rate limiting
 
-2. **Agregar ruta en App.js**
-   ```javascript
-   <Route path="/dashboard" element={<Dashboard />} />
-   ```
+2. **📊 Crear Índice Firestore**
+   - Firebase Console → Firestore → Índices
+   - Colección: `transactions`
+   - Campos: `buyerId` (asc) + `createdAt` (desc)
 
-3. **Agregar enlace en Navbar** (solo para usuarios con listings)
+### **IMPORTANTE (Features):**
+3. **🎛️ Dashboard de Vendedor**
+   - Crear `/dashboard` route
+   - Estadísticas de ventas por TCG
+   - Gestión avanzada de listings
+   - Gráficos de rendimiento
 
-4. **Implementar estadísticas básicas:**
-   - Total de listings activos
-   - Ingresos del mes/total
-   - Transacciones completadas
-   - Rating promedio
+4. **🔒 Seguridad para Producción**
+   - Mover API keys a variables de entorno
+   - Validaciones de entrada
+   - Permisos Firestore más restrictivos
 
-### **Components Necesarios para Dashboard:**
-```
-src/components/dashboard/
-├── StatsCards.js - Tarjetas de estadísticas
-├── SalesChart.js - Gráfico de ventas
-├── ListingsTable.js - Tabla de gestión de listings
-└── TransactionsTable.js - Tabla de transacciones
-```
+### **NICE-TO-HAVE:**
+5. **⏰ Sistema de Reservas**
+   - Stock temporal en carrito (15 min)
+   - Liberación automática
+   - Notificaciones de expiración
 
 ---
 
-## 🛠️ **Comandos Útiles**
+## 🛠️ **Comandos de Desarrollo**
 
-### **Desarrollo:**
+### **Local:**
 ```bash
-npm start                 # Iniciar servidor de desarrollo
+npm start                 # Servidor de desarrollo (con proxy)
 npm run build            # Build para producción
-npm test                 # Ejecutar tests
+npm test                 # Tests
 ```
 
-### **Git:**
+### **Debugging:**
+```bash
+# Abrir DevTools → Console para ver logs de Pokémon API
+# Revisar Network tab para requests fallidos
+# Verificar Headers y Response en failed requests
+```
+
+### **Deployment:**
 ```bash
 git add .
-git commit -m "feat: implementar dashboard de vendedor 🤖 Generated with Claude Code"
-git push
+git commit -m "fix: resolver problema API Pokémon TCG"
+git push                 # Auto-deploy en Vercel
 ```
 
 ---
 
-## 📱 **Rutas Implementadas**
+## 📱 **Rutas Actuales**
 
 ```javascript
-/ - Home
-/catalogo - Catálogo de cartas
-/marketplace - Marketplace principal ✅
-/perfil - Perfil de usuario ✅
-/transacciones - Gestión de transacciones ✅
-/binders - Gestión de binders
-/binder/:id - Vista de binder específico
-/carrito - Carrito de compras ✅
-/crear-listado - Crear nuevo listing
-/admin - Panel de administración
-/live - Página en vivo
+✅ / - Home
+✅ /marketplace - Marketplace multi-TCG principal  
+✅ /perfil - Perfil + transacciones integradas
+✅ /binders - Gestión de colecciones
+✅ /binder/:id - Vista de binder específico
+✅ /carrito - Carrito con checkout modal
 
-// Pendientes:
-/dashboard - Dashboard de vendedor 🔄
+❌ Eliminadas:
+   /catalogo - Funcionalidad duplicada
+   /live - No necesaria en MVP
+   /transacciones - Integrada en /perfil
+
+🔄 Pendientes:
+   /dashboard - Dashboard de vendedor
 ```
 
 ---
 
-## 🎨 **Estilos y UI**
+## 🎨 **Stack Tecnológico**
 
-### **Componentes de Bootstrap Utilizados:**
-- Modal, Button, Form, Alert, Card, Badge
-- Container, Row, Col, Spinner, Toast
-- Pagination, Dropdown, Nav, Navbar
+### **Frontend:**
+- ⚛️ React 18 + Hooks
+- 🎨 Bootstrap 5 + react-bootstrap
+- 🎭 React Icons + Framer Motion
+- 🔥 Firebase v11 (Auth + Firestore)
 
-### **Iconos (react-icons):**
-- FaShoppingCart, FaWhatsapp, FaEnvelope, FaPhone
-- FaStar, FaFlag, FaCheckCircle, FaExchangeAlt
-- FaCreditCard, FaStore, FaEye, FaClock
+### **APIs Externas:**
+- 🐉 Pokémon TCG API v2
+- 🏴‍☠️ TCG APIs (One Piece, Dragon Ball, etc.)
+- 📱 WhatsApp Business Links
+- 📧 Mailto: protocol
 
----
-
-## 🔍 **Testing y Debugging**
-
-### **Puntos Críticos a Probar:**
-1. **Sistema de Inventario:**
-   - Agregar cartas al carrito
-   - Verificar límites de stock
-   - Productos agotados no se pueden agregar
-
-2. **Sistema de Checkout:**
-   - Modal de checkout con diferentes métodos
-   - Creación de transacciones
-   - Enlaces de WhatsApp/Email funcionando
-
-3. **Sistema de Rating:**
-   - Solo usuarios con transacciones pueden calificar
-   - Una calificación por transacción
-   - Actualización de rating promedio
-
-### **Posibles Errores Conocidos:**
-- ESLint: Variables no definidas en scope
-- Firebase: Permisos de lectura/escritura
-- React: Keys únicas en listas
+### **Deployment:**
+- ▲ Vercel (Frontend + Auto-deploy)
+- 🔥 Firebase (Backend + Database)
+- 🌍 Custom Domain (configuración pendiente)
 
 ---
 
-## 📝 **Notas de Desarrollo**
+## 🔍 **Testing y QA**
 
-### **Patrones Establecidos:**
-- Context para estado global (CartContext)
-- Hooks personalizados para lógica reutilizable
-- Componentes funcionales con hooks
-- Firebase/Firestore para backend
-- Bootstrap para UI/UX
+### **Funcionalidades a Probar:**
+1. **Multi-TCG Search:**
+   - ✅ One Piece, Dragon Ball, Digimon, Magic, Union Arena, Gundam
+   - ❌ Pokémon (requiere fix)
 
-### **Convenciones de Código:**
-- Nombres en español para UI
-- camelCase para variables
-- PascalCase para componentes
-- Comentarios explicativos en funciones complejas
+2. **Sistema de Transacciones:**
+   - ✅ Crear transacción desde carrito
+   - ✅ Ver historial en perfil (compras/ventas)
+   - ✅ Sistema de calificaciones
+   - ❌ Índice de Firestore (crear manualmente)
 
-### **Estructura de Commits:**
-```
-feat: nueva funcionalidad
-fix: corrección de bugs  
-refactor: refactorización
-docs: documentación
-style: cambios de estilo
-```
+3. **Gestión de Inventario:**
+   - ✅ Control de stock
+   - ✅ Productos agotados
+   - ✅ Transacciones atómicas
+
+### **Browsers Soportados:**
+- ✅ Chrome, Firefox, Safari, Edge (últimas versiones)
+- ✅ Mobile responsive
+- ✅ PWA ready (configuración básica)
 
 ---
 
-**📅 Última Actualización:** 2025-01-03
-**👨‍💻 Desarrollado con:** Claude Code
-**🎯 Próximo Objetivo:** Dashboard de Vendedor con Estadísticas
+## 📝 **Notas del Desarrollador**
+
+### **Cambios Arquitecturales Importantes:**
+1. **Eliminación de páginas redundantes** → App más enfocada
+2. **Transacciones integradas en perfil** → UX más coherente  
+3. **Sistema multi-TCG unificado** → Escalabilidad mejorada
+4. **Proxy CORS para desarrollo** → Mejor DX
+
+### **Decisiones de Diseño:**
+- **Pokémon como TCG principal** → Más popular
+- **Fallback data para CORS** → Mejor UX durante errores
+- **Console logging temporal** → Debugging más fácil
+- **Proxy solo en desarrollo** → Producción usa URLs directas
+
+### **Deuda Técnica:**
+- 🔧 Logs de debugging pendientes de limpiar
+- 🔧 Hardcoded API keys (mover a .env)
+- 🔧 Falta testing automatizado
+- 🔧 Bundle size optimization pendiente
+
+---
+
+## 🎯 **Métricas de Éxito**
+
+### **Objetivos Técnicos:**
+- ✅ 7 TCG APIs integradas (6/7 funcionando)
+- ✅ 0 errores CORS en producción
+- ✅ App deployada y accessible
+- ❌ Pokémon API funcional (pendiente)
+
+### **Objetivos UX:**
+- ✅ Navegación simplificada
+- ✅ Transacciones centralizadas
+- ✅ Multi-TCG en un solo lugar
+- ✅ Feedback visual en todas las acciones
+
+### **KPIs a Monitorear:**
+- 📊 Búsquedas exitosas por TCG
+- 📊 Transacciones completadas
+- 📊 Tiempo de carga promedio
+- 📊 Errores de API vs éxito
+
+---
+
+**📅 Última Actualización:** 2025-01-04  
+**👨‍💻 Desarrollado con:** Claude Code  
+**🎯 Objetivo Inmediato:** Fix API Pokémon TCG + Crear Índice Firestore  
+**🚀 Estado del Deploy:** LIVE en Vercel (6/7 TCGs funcionando)

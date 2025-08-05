@@ -250,23 +250,22 @@ export default function SellCardModal({ show, handleClose }) {
       let response, data, fetchedCards = [], totalCount = 0;
       
       if (config.api === 'pokemon') {
-        // API de Pokémon TCG v2 con sintaxis correcta
+        // API de Pokémon TCG v2 con búsqueda mejorada
         let queryTerm;
         if (sanitizedTerm.includes(' ')) {
           // Búsqueda exacta para frases
           queryTerm = `name:"${sanitizedTerm}"`;
         } else {
-          // Búsqueda con wildcard para términos simples
+          // Búsqueda con wildcard para palabras parciales (ej: "Chari" encuentra "Charizard")
           queryTerm = `name:${sanitizedTerm}*`;
         }
         
-        response = await fetch(
-          `${config.endpoint}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=8`,
-          { 
-            headers: config.headers,
-            timeout: 10000
-          }
-        );
+        const url = `${config.endpoint}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=8`;
+        
+        response = await fetch(url, { 
+          headers: config.headers,
+          timeout: 10000
+        });
         
         if (!response.ok) {
           if (response.status === 400) {
@@ -278,6 +277,7 @@ export default function SellCardModal({ show, handleClose }) {
         }
         
         data = await response.json();
+        
         if (!data?.data || !Array.isArray(data.data)) {
           throw new Error('No se encontraron cartas para tu búsqueda');
         }
@@ -292,10 +292,6 @@ export default function SellCardModal({ show, handleClose }) {
           ? config.endpoint 
           : config.endpoint.replace('https://www.apitcg.com/api', '/api/tcg');
         
-        console.log('NODE_ENV:', process.env.NODE_ENV);
-        console.log('isProduction:', isProduction);
-        console.log('URL original:', config.endpoint);
-        console.log('URL de API final:', apiUrl);
         
         try {
           response = await fetch(
