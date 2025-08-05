@@ -8,6 +8,19 @@ import { Link } from 'react-router-dom';
 const LatestCards = () => {
   const [latestCards, setLatestCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si es móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchLatestCards = async () => {
@@ -81,56 +94,75 @@ const LatestCards = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1, duration: 0.4 }}
             >
-              <Card className="h-100 latest-card-hover shadow-sm">
-                <Card.Img 
-                  variant="top" 
-                  src={card.cardImage || 'https://via.placeholder.com/200'} 
-                  className="card-img-top"
-                  style={{ 
-                    height: '160px', 
-                    objectFit: 'contain', 
-                    padding: '0.75rem',
-                    background: '#f8f9fa'
-                  }}
-                />
-                <Card.Body className="p-3">
-                  <Card.Title className="fs-6 mb-2 text-truncate fw-bold">
-                    {card.cardName}
-                  </Card.Title>
-                  
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span className="badge bg-success fs-6 px-2 py-1">
-                      ${card.price}
-                    </span>
-                    <span className="badge bg-light text-dark">
-                      {card.condition}
-                    </span>
-                  </div>
-                  
-                  <div className="d-flex justify-content-between align-items-center">
-                    <small className="text-muted text-truncate">
-                      <i className="fas fa-user me-1"></i>
-                      {card.sellerName || "Anónimo"}
-                    </small>
-                    <small className="text-muted">
-                      <i className="fas fa-gamepad me-1"></i>
-                      {card.tcgGame || "TCG"}
-                    </small>
-                  </div>
-                  
-                  {card.rarity && (
-                    <div className="mt-2">
-                      <span className={`badge ${
-                        card.rarity === 'Rare' || card.rarity === 'Ultra Rare' ? 'bg-warning' :
-                        card.rarity === 'Secret Rare' ? 'bg-danger' :
-                        'bg-secondary'
-                      } text-dark`}>
-                        {card.rarity}
+{isMobile ? (
+                // Vista móvil simplificada: solo imagen + precio
+                <div className="mobile-card-simple">
+                  <div className="mobile-card-image-container">
+                    <img 
+                      src={card.cardImage || 'https://via.placeholder.com/200'} 
+                      alt={card.cardName}
+                      className="mobile-card-image"
+                    />
+                    <div className="mobile-price-overlay">
+                      <span className="mobile-price-badge">
+                        ${card.price}
                       </span>
                     </div>
-                  )}
-                </Card.Body>
-              </Card>
+                  </div>
+                </div>
+              ) : (
+                // Vista desktop completa
+                <Card className="h-100 latest-card-hover shadow-sm">
+                  <Card.Img 
+                    variant="top" 
+                    src={card.cardImage || 'https://via.placeholder.com/200'} 
+                    className="card-img-top"
+                    style={{ 
+                      height: '160px', 
+                      objectFit: 'contain', 
+                      padding: '0.75rem',
+                      background: '#f8f9fa'
+                    }}
+                  />
+                  <Card.Body className="p-3">
+                    <Card.Title className="fs-6 mb-2 text-truncate fw-bold">
+                      {card.cardName}
+                    </Card.Title>
+                    
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="badge bg-success fs-6 px-2 py-1">
+                        ${card.price}
+                      </span>
+                      <span className="badge bg-light text-dark">
+                        {card.condition}
+                      </span>
+                    </div>
+                    
+                    <div className="d-flex justify-content-between align-items-center">
+                      <small className="text-muted text-truncate">
+                        <i className="fas fa-user me-1"></i>
+                        {card.sellerName || "Anónimo"}
+                      </small>
+                      <small className="text-muted">
+                        <i className="fas fa-gamepad me-1"></i>
+                        {card.tcgGame || "TCG"}
+                      </small>
+                    </div>
+                    
+                    {card.rarity && (
+                      <div className="mt-2">
+                        <span className={`badge ${
+                          card.rarity === 'Rare' || card.rarity === 'Ultra Rare' ? 'bg-warning' :
+                          card.rarity === 'Secret Rare' ? 'bg-danger' :
+                          'bg-secondary'
+                        } text-dark`}>
+                          {card.rarity}
+                        </span>
+                      </div>
+                    )}
+                  </Card.Body>
+                </Card>
+              )}
             </motion.div>
           ))}
         </div>

@@ -8,6 +8,19 @@ const CarouselHero = () => {
   const [images, setImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si es móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Cargar imágenes desde Firebase
   useEffect(() => {
@@ -143,7 +156,11 @@ const CarouselHero = () => {
           >
             <div className="carousel-image-container">
               <img
-                src={activeImages[currentIndex]?.imageUrl}
+                src={
+                  isMobile && activeImages[currentIndex]?.mobileImageUrl 
+                    ? activeImages[currentIndex].mobileImageUrl 
+                    : activeImages[currentIndex]?.imageUrl
+                }
                 alt={activeImages[currentIndex]?.title || 'Carousel slide'}
                 className="carousel-image"
                 onError={(e) => {

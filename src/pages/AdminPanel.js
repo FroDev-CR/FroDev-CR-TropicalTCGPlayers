@@ -22,11 +22,12 @@ const AdminPanel = () => {
   // Configuración inicial
   const collections = {
     carousel: {
-      fields: ['title', 'subtitle', 'imageUrl', 'order', 'active'],
+      fields: ['title', 'subtitle', 'imageUrl', 'mobileImageUrl', 'order', 'active'],
       labels: {
         title: 'Título',
         subtitle: 'Subtítulo',
-        imageUrl: 'URL de la Imagen*',
+        imageUrl: 'URL Imagen Desktop*',
+        mobileImageUrl: 'URL Imagen Móvil',
         order: 'Orden de Aparición*',
         active: 'Activa'
       },
@@ -116,6 +117,7 @@ const AdminPanel = () => {
             title: d.data().title || 'Sin título',
             subtitle: d.data().subtitle || '',
             imageUrl: d.data().imageUrl || '',
+            mobileImageUrl: d.data().mobileImageUrl || '',
             order: d.data().order || 0,
             active: d.data().active || false
           })));
@@ -515,6 +517,7 @@ const AdminPanel = () => {
                     required={collections[activeTab].required.includes(field)}
                     placeholder={
                       field === 'image' || field === 'imageUrl' ? 'https://ejemplo.com/imagen.jpg' : 
+                      field === 'mobileImageUrl' ? 'https://ejemplo.com/imagen-movil.jpg (opcional)' :
                       field === 'order' ? '1, 2, 3...' : ''
                     }
                   />

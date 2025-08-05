@@ -741,3 +741,165 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15) !important;
 }
+
+/* Tarjetas móviles simplificadas */
+.mobile-card-simple {
+  width: 100%;
+  height: 100%;
+}
+
+.mobile-card-image-container {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-card-image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #f8f9fa;
+  padding: 0.5rem;
+}
+
+.mobile-price-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.mobile-price-badge {
+  background: rgba(40, 167, 69, 0.95);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+}
+
+/* Ajustes para tarjetas móviles en el scroll horizontal */
+@media (max-width: 768px) {
+  .latest-card-item {
+    flex: 0 0 110px;
+    min-width: 110px;
+  }
+  
+  .mobile-card-image-container {
+    height: 140px;
+  }
+}
+
+@media (max-width: 576px) {
+  .latest-card-item {
+    flex: 0 0 100px;
+    min-width: 100px;
+  }
+  
+  .mobile-card-image-container {
+    height: 130px;
+  }
+  
+  .mobile-price-badge {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+}
+
+/* Tarjetas cuadradas de eventos */
+.event-card-item {
+  flex: 0 0 180px;
+  min-width: 180px;
+}
+
+.square-event-card {
+  height: 220px !important;
+}
+
+.event-image-container {
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.event-square-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-placeholder-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.event-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.event-time-badge {
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+}
+
+/* Responsive para eventos */
+@media (max-width: 768px) {
+  .event-card-item {
+    flex: 0 0 140px;
+    min-width: 140px;
+  }
+  
+  .square-event-card {
+    height: 180px !important;
+  }
+  
+  .event-image-container {
+    height: 110px;
+  }
+}
+
+@media (max-width: 576px) {
+  .event-card-item {
+    flex: 0 0 120px;
+    min-width: 120px;
+  }
+  
+  .square-event-card {
+    height: 160px !important;
+  }
+  
+  .event-image-container {
+    height: 90px;
+  }
+  
+  .event-time-badge {
+    font-size: 0.6rem;
+    padding: 3px 6px;
+  }
+}

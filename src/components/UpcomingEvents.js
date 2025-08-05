@@ -140,63 +140,56 @@ const UpcomingEvents = () => {
         </Link>
       </div>
       
-      <div className="row g-3">
-        {upcomingEvents.map((event, index) => (
-          <motion.div
-            key={event.id}
-            className="col-md-4"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1, duration: 0.4 }}
-          >
-            <Card className="h-100 shadow-sm border-0 upcoming-event-card">
-              {event.image && (
-                <Card.Img 
-                  variant="top" 
-                  src={event.image} 
-                  style={{ 
-                    height: '120px', 
-                    objectFit: 'cover',
-                    borderRadius: '0.5rem 0.5rem 0 0'
-                  }}
-                />
-              )}
-              <Card.Body className="p-3">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <h6 className="card-title fw-bold mb-0 text-truncate">
-                    {event.title}
-                  </h6>
-                  <span className="badge bg-primary text-white ms-2">
-                    {getTimeUntilEvent(event.date)}
-                  </span>
+      <div className="latest-cards-horizontal">
+        <div className="latest-cards-container">
+          {upcomingEvents.map((event, index) => (
+            <motion.div
+              key={event.id}
+              className="event-card-item"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.4 }}
+            >
+              <Card className="h-100 shadow-sm border-0 upcoming-event-card square-event-card">
+                <div className="event-image-container">
+                  {event.image ? (
+                    <Card.Img 
+                      variant="top" 
+                      src={event.image} 
+                      className="event-square-image"
+                    />
+                  ) : (
+                    <div className="event-placeholder-image">
+                      <i className="fas fa-calendar-alt fa-2x text-muted"></i>
+                    </div>
+                  )}
+                  <div className="event-overlay">
+                    <span className="event-time-badge">
+                      {getTimeUntilEvent(event.date)}
+                    </span>
+                  </div>
                 </div>
                 
-                <p className="card-text text-muted small mb-2">
-                  <i className="fas fa-clock me-1"></i>
-                  {formatDate(event.date)}
-                </p>
-                
-                {event.price && (
-                  <p className="card-text mb-2">
-                    <span className="badge bg-success">
-                      <i className="fas fa-dollar-sign me-1"></i>
+                <Card.Body className="p-2">
+                  <h6 className="card-title fw-bold mb-1 text-truncate small">
+                    {event.title}
+                  </h6>
+                  
+                  <p className="card-text text-muted mb-1" style={{ fontSize: '0.7rem' }}>
+                    <i className="fas fa-clock me-1"></i>
+                    {formatDate(event.date).split(',')[0]}
+                  </p>
+                  
+                  {event.price && (
+                    <span className="badge bg-success" style={{ fontSize: '0.6rem' }}>
                       ${event.price}
                     </span>
-                  </p>
-                )}
-                
-                {event.description && (
-                  <p className="card-text text-muted small">
-                    {event.description.length > 60 
-                      ? `${event.description.substring(0, 60)}...` 
-                      : event.description
-                    }
-                  </p>
-                )}
-              </Card.Body>
-            </Card>
-          </motion.div>
-        ))}
+                  )}
+                </Card.Body> 
+              </Card>
+            </motion.div>
+          ))}
+        </div>
       </div>
       
       <div className="text-center mt-4">
