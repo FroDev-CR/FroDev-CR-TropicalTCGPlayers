@@ -317,9 +317,19 @@ export default function Marketplace() {
     const allCards = [];
     const errors = [];
 
+    // Verificar que tenemos las API keys
+    if (!POKEMON_API_KEY && !TCG_API_KEY) {
+      errors.push('No se encontraron claves de API configuradas');
+      return { cards: [], errors };
+    }
+
     // Buscar en todas las APIs configuradas
     for (const [gameKey, gameConfig] of Object.entries(TCG_GAMES)) {
       if (!gameConfig.available) continue;
+      
+      // Skip si no tenemos la API key necesaria
+      if (gameConfig.apiType === 'pokemon' && !POKEMON_API_KEY) continue;
+      if (gameConfig.apiType === 'tcgapi' && !TCG_API_KEY) continue;
       
       try {
         let response;
@@ -334,7 +344,10 @@ export default function Marketplace() {
             queryTerm = `name:${sanitizedTerm}*`;
           }
           
-          const url = `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=20`;
+          const url = `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=10`;
+          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
           
           response = await fetch(url, { 
             headers: {
@@ -342,8 +355,10 @@ export default function Marketplace() {
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
-            timeout: 8000
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           
@@ -385,8 +400,11 @@ export default function Marketplace() {
             ? gameConfig.apiUrl 
             : gameConfig.apiUrl.replace('https://www.apitcg.com/api', '/api/tcg');
           
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
           response = await fetch(
-            `${apiUrl}?name=${encodeURIComponent(sanitizedTerm)}&limit=20&page=${page}`,
+            `${apiUrl}?name=${encodeURIComponent(sanitizedTerm)}&limit=10&page=${page}`,
             { 
               method: 'GET',
               headers: isProduction ? {
@@ -398,9 +416,11 @@ export default function Marketplace() {
                 'Accept': 'application/json'
               },
               mode: 'cors',
-              timeout: 8000
+              signal: controller.signal
             }
           );
+          
+          clearTimeout(timeoutId);
           
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           
@@ -436,7 +456,11 @@ export default function Marketplace() {
         
       } catch (error) {
         console.warn(`Error searching ${gameConfig.name}:`, error);
-        errors.push(`${gameConfig.name}: ${error.message}`);
+        if (error.name === 'AbortError') {
+          errors.push(`${gameConfig.name}: Timeout (5s)`);
+        } else {
+          errors.push(`${gameConfig.name}: ${error.message}`);
+        }
       }
     }
     
@@ -626,37 +650,178 @@ export default function Marketplace() {
       setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
     }
     setLoading(false);
-  }, [searchTerm, searchCache, filters]);
+  }, [searchTerm, filters]); // Remover searchCache de dependencies
 
   const handlePagination = useCallback((newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
-    searchCards(newPage);
-  }, [totalPages, searchCards]);
+    if (searchTerm.trim()) {
+      performSearch(searchTerm, newPage);
+    }
+  }, [totalPages, searchTerm, performSearch]);
+
+  // Función de búsqueda simple sin bucles
+  const performSearch = useCallback(async (term, page = 1) => {
+    if (!term.trim()) {
+      setCards([]);
+      setListings([]);
+      setTotalResults(0);
+      setTotalPages(1);
+      setCurrentPage(1);
+      return;
+    }
+
+    setLoading(true);
+    setSearchError('');
+    
+    try {
+      // 1. Buscar cartas en las APIs externas
+      const { cards: apiCards, errors: apiErrors } = await searchCardsInAPIs(term, page);
+      
+      // 2. Buscar listings existentes en Firestore
+      const listingsQuery = query(
+        collection(db, 'listings'),
+        where('status', '==', 'active'),
+        orderBy('createdAt', 'desc'),
+        limit(200)
+      );
+      
+      const listingsSnapshot = await getDocs(listingsQuery);
+      let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Filtrar listings por término de búsqueda
+      allListings = allListings.filter(listing => 
+        listing.cardName && listing.cardName.toLowerCase().includes(term.toLowerCase())
+      );
+      
+      // 3. Combinar cartas de API con listings
+      const cardMap = new Map();
+      
+      // Agregar cartas de APIs
+      apiCards.forEach(card => {
+        if (!cardMap.has(card.id)) {
+          cardMap.set(card.id, {
+            ...card,
+            sellers: [],
+            averagePrice: 0,
+            minPrice: 0,
+            maxPrice: 0,
+            totalStock: 0
+          });
+        }
+      });
+      
+      // Agregar listings como vendedores
+      allListings.forEach(listing => {
+        const cardId = listing.cardId;
+        
+        if (!cardMap.has(cardId)) {
+          cardMap.set(cardId, {
+            id: cardId,
+            name: listing.cardName,
+            images: { small: listing.cardImage, large: listing.cardImage },
+            set: { name: listing.setName || 'Desconocido' },
+            rarity: listing.rarity || 'Sin rareza',
+            tcgType: listing.tcgType || 'unknown',
+            tcgName: TCG_GAMES[listing.tcgType]?.name || 'Desconocido',
+            sellers: [],
+            averagePrice: 0,
+            minPrice: 0,
+            maxPrice: 0,
+            totalStock: 0
+          });
+        }
+        
+        const card = cardMap.get(cardId);
+        card.sellers.push({
+          listingId: listing.id,
+          sellerId: listing.sellerId,
+          sellerName: listing.sellerName,
+          price: listing.price,
+          condition: listing.condition,
+          quantity: listing.availableQuantity || listing.quantity || 1,
+          createdAt: listing.createdAt,
+          userPhone: listing.userPhone
+        });
+      });
+      
+      // 4. Calcular precios ponderados
+      cardMap.forEach((card) => {
+        if (card.sellers.length > 0) {
+          const prices = card.sellers.map(s => s.price);
+          const quantities = card.sellers.map(s => s.quantity);
+          
+          card.minPrice = Math.min(...prices);
+          card.maxPrice = Math.max(...prices);
+          card.totalStock = quantities.reduce((sum, q) => sum + q, 0);
+          
+          const totalWeightedPrice = card.sellers.reduce((sum, seller) => {
+            return sum + (seller.price * seller.quantity);
+          }, 0);
+          card.averagePrice = totalWeightedPrice / card.totalStock;
+          
+          card.sellers.sort((a, b) => a.price - b.price);
+        }
+      });
+      
+      // 5. Convertir a array y aplicar filtros
+      let finalCards = Array.from(cardMap.values());
+      finalCards = applyFilters(finalCards, filters);
+      
+      // 6. Paginación
+      const itemsPerPage = 12;
+      const totalCount = finalCards.length;
+      const calculatedPages = Math.ceil(totalCount / itemsPerPage);
+      const startIndex = (page - 1) * itemsPerPage;
+      const paginatedCards = finalCards.slice(startIndex, startIndex + itemsPerPage);
+
+      setCards(paginatedCards);
+      setListings(allListings);
+      setTotalResults(totalCount);
+      setTotalPages(calculatedPages);
+      setCurrentPage(page);
+
+      if (paginatedCards.length === 0) {
+        const errorMsg = apiErrors.length > 0 
+          ? `No se encontraron cartas. Errores de API: ${apiErrors.join(', ')}`
+          : 'No se encontraron cartas que coincidan con tu búsqueda.';
+        setSearchError(errorMsg);
+      }
+
+    } catch (error) {
+      console.error('Error searching cards:', error);
+      setCards([]);
+      setListings([]);
+      setTotalResults(0);
+      setTotalPages(1);
+      setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
+    }
+    setLoading(false);
+  }, [filters]);
 
   // Debounced search
-  const handleSearchChange = useCallback((value) => {
+  const handleSearchChange = (value) => {
     setSearchTerm(value);
-    setSearchError(''); // Limpiar errores previos
+    setSearchError('');
     
     if (debounceTimer) {
       clearTimeout(debounceTimer);
     }
     
+    if (!value.trim()) {
+      setCards([]);
+      setListings([]);
+      setTotalResults(0);
+      setTotalPages(1);
+      setCurrentPage(1);
+      return;
+    }
+    
     const timer = setTimeout(() => {
-      if (value.trim()) {
-        searchCards(1, true); // Skip cache for new searches
-      } else {
-        // Limpiar resultados si no hay término de búsqueda
-        setCards([]);
-        setListings([]);
-        setTotalResults(0);
-        setTotalPages(1);
-        setCurrentPage(1);
-      }
-    }, 500);
+      performSearch(value, 1);
+    }, 1000);
     
     setDebounceTimer(timer);
-  }, [debounceTimer, searchCards]);
+  };
 
   // Cleanup debounce on unmount
   useEffect(() => {
@@ -709,9 +874,8 @@ export default function Marketplace() {
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);
     setCurrentPage(1);
-    setSearchCache({}); // Limpiar cache cuando cambian los filtros
-    if (searchTerm.trim() || getActiveFiltersCount() > 0) {
-      setTimeout(() => searchCards(1, true), 100);
+    if (searchTerm.trim()) {
+      setTimeout(() => performSearch(searchTerm, 1), 100);
     }
   };
 
@@ -753,7 +917,7 @@ export default function Marketplace() {
               placeholder="🔍 Buscar cartas en todos los TCGs - Pokémon, One Piece, Dragon Ball, Magic, Digimon y más..."
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchCards(1, true)}
+              onKeyPress={(e) => e.key === 'Enter' && searchTerm.trim() && performSearch(searchTerm, 1)}
               className="form-control-lg"
             />
             <Button 
@@ -769,8 +933,8 @@ export default function Marketplace() {
               <span className="d-none d-md-inline">Filtros</span>
             </Button>
             <Button 
-              onClick={() => searchCards(1, true)} 
-              disabled={loading}
+              onClick={() => searchTerm.trim() && performSearch(searchTerm, 1)} 
+              disabled={loading || !searchTerm.trim()}
               variant="primary"
               className="btn-lg"
             >
