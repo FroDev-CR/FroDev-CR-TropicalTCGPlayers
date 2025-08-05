@@ -6,7 +6,7 @@ module.exports = function(app) {
   app.use(
     '/api/tcg',
     createProxyMiddleware({
-      target: 'https://www.apitcg.com',
+      target: 'https://apitcg.com',
       changeOrigin: true,
       secure: true,
       followRedirects: true,
@@ -29,5 +29,5 @@ module.exports = function(app) {
     })
   );
   
-  console.log('✅ Proxy configurado para /api/tcg -> https://www.apitcg.com/api');
+  console.log('✅ Proxy configurado para /api/tcg -> https://apitcg.com/api');
 };
