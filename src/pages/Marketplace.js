@@ -652,13 +652,6 @@ export default function Marketplace() {
     setLoading(false);
   }, [searchTerm, filters]); // Remover searchCache de dependencies
 
-  const handlePagination = useCallback((newPage) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    if (searchTerm.trim()) {
-      performSearch(searchTerm, newPage);
-    }
-  }, [totalPages, searchTerm, performSearch]);
-
   // Función de búsqueda simple sin bucles
   const performSearch = useCallback(async (term, page = 1) => {
     if (!term.trim()) {
@@ -797,6 +790,14 @@ export default function Marketplace() {
     }
     setLoading(false);
   }, [filters]);
+
+  // Paginación
+  const handlePagination = useCallback((newPage) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    if (searchTerm.trim()) {
+      performSearch(searchTerm, newPage);
+    }
+  }, [totalPages, searchTerm, performSearch]);
 
   // Debounced search
   const handleSearchChange = (value) => {
