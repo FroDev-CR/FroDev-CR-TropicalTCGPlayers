@@ -7,12 +7,12 @@ import { getStorage } from "firebase/storage"; // ✅ Importar storage
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: "tropical-tcg-players-5a199.firebaseapp.com",
-  projectId: "tropical-tcg-players-5a199",
-  storageBucket: "tropical-tcg-players-5a199.appspot.com",
-  messagingSenderId: "943837881919",
-  appId: "1:943837881919:web:471ae207891d2f07837a8a",
-  measurementId: "G-V4BRPDYE31"
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
