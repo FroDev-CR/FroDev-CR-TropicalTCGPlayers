@@ -182,18 +182,18 @@ export default function Marketplace() {
 
   const [latestListings, setLatestListings] = useState([]);
 
-  // Función para aplicar filtros avanzados
-  const applyFilters = (listings, activeFilters) => {
-    let filtered = [...listings];
+  // Función para aplicar filtros avanzados (actualizada para cartas unificadas)
+  const applyFilters = (cards, activeFilters) => {
+    let filtered = [...cards];
 
     // Filtro por TCG Types
     if (activeFilters.tcgTypes.length > 0) {
-      filtered = filtered.filter(listing => 
-        activeFilters.tcgTypes.includes(listing.tcgType)
+      filtered = filtered.filter(card => 
+        activeFilters.tcgTypes.includes(card.tcgType)
       );
     }
 
-    // Filtro por precio
+    // Filtro por precio (basado en precio promedio de la carta)
     if (activeFilters.priceRange) {
       const priceRanges = {
         'under10': { min: 0, max: 10 },
@@ -205,23 +205,26 @@ export default function Marketplace() {
       
       const range = priceRanges[activeFilters.priceRange];
       if (range) {
-        filtered = filtered.filter(listing => 
-          listing.price >= range.min && listing.price <= range.max
-        );
+        filtered = filtered.filter(card => {
+          const price = card.averagePrice || card.minPrice || 0;
+          return price >= range.min && price <= range.max;
+        });
       }
     }
 
-    // Filtro por condición
+    // Filtro por condición (si tiene vendedores con esa condición)
     if (activeFilters.conditions.length > 0) {
-      filtered = filtered.filter(listing => 
-        activeFilters.conditions.includes(listing.condition)
+      filtered = filtered.filter(card => 
+        card.sellers && card.sellers.some(seller => 
+          activeFilters.conditions.includes(seller.condition)
+        )
       );
     }
 
     // Filtro por rareza
     if (activeFilters.rarities.length > 0) {
-      filtered = filtered.filter(listing => 
-        activeFilters.rarities.includes(listing.rarity)
+      filtered = filtered.filter(card => 
+        activeFilters.rarities.includes(card.rarity)
       );
     }
 
@@ -231,26 +234,40 @@ export default function Marketplace() {
       filtered = filtered.filter(() => Math.random() > (activeFilters.minRating / 5 - 0.3));
     }
 
+    // Filtro adicional: solo cartas con vendedores
+    const onlyWithSellers = activeFilters.onlyWithSellers || false;
+    if (onlyWithSellers) {
+      filtered = filtered.filter(card => card.sellers && card.sellers.length > 0);
+    }
+
     // Ordenamiento
     switch (activeFilters.sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => (a.minPrice || 0) - (b.minPrice || 0));
         break;
       case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => (b.maxPrice || 0) - (a.maxPrice || 0));
         break;
       case 'name-az':
-        filtered.sort((a, b) => a.cardName.localeCompare(b.cardName));
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'name-za':
-        filtered.sort((a, b) => b.cardName.localeCompare(a.cardName));
+        filtered.sort((a, b) => b.name.localeCompare(a.name));
         break;
-      case 'oldest':
-        filtered.sort((a, b) => a.createdAt - b.createdAt);
+      case 'sellers-most':
+        filtered.sort((a, b) => (b.sellers?.length || 0) - (a.sellers?.length || 0));
+        break;
+      case 'sellers-least':
+        filtered.sort((a, b) => (a.sellers?.length || 0) - (b.sellers?.length || 0));
         break;
       case 'newest':
       default:
-        filtered.sort((a, b) => b.createdAt - a.createdAt);
+        // Ordenar por carta más reciente (basado en el listing más reciente)
+        filtered.sort((a, b) => {
+          const aLatest = a.sellers?.length > 0 ? Math.max(...a.sellers.map(s => s.createdAt?.seconds || 0)) : 0;
+          const bLatest = b.sellers?.length > 0 ? Math.max(...b.sellers.map(s => s.createdAt?.seconds || 0)) : 0;
+          return bLatest - aLatest;
+        });
         break;
     }
 
@@ -289,6 +306,143 @@ export default function Marketplace() {
     }
   }, [searchTerm]);
 
+  // Función unificada para buscar en ambas APIs
+  const searchCardsInAPIs = async (searchTerm, page = 1) => {
+    const sanitizedTerm = searchTerm
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s\-']/g, '')
+      .replace(/\s+/g, ' ');
+    
+    const allCards = [];
+    const errors = [];
+
+    // Buscar en todas las APIs configuradas
+    for (const [gameKey, gameConfig] of Object.entries(TCG_GAMES)) {
+      if (!gameConfig.available) continue;
+      
+      try {
+        let response;
+        let data;
+        
+        if (gameConfig.apiType === 'pokemon') {
+          // Pokemon TCG API
+          let queryTerm;
+          if (sanitizedTerm.includes(' ')) {
+            queryTerm = `name:"${sanitizedTerm}"`;
+          } else {
+            queryTerm = `name:${sanitizedTerm}*`;
+          }
+          
+          const url = `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=20`;
+          
+          response = await fetch(url, { 
+            headers: {
+              'X-Api-Key': gameConfig.apiKey,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            timeout: 8000
+          });
+          
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          
+          data = await response.json();
+          
+          // Adaptar formato Pokemon TCG
+          const adaptedCards = data.data?.map(card => ({
+            id: card.id,
+            name: card.name,
+            images: { 
+              small: card.images?.small || 'https://via.placeholder.com/200',
+              large: card.images?.large || card.images?.small || 'https://via.placeholder.com/400'
+            },
+            set: { name: card.set?.name || 'Desconocido' },
+            rarity: card.rarity || 'Common',
+            tcgType: gameKey,
+            tcgName: gameConfig.name,
+            // Pokemon specific fields
+            supertype: card.supertype,
+            subtypes: card.subtypes,
+            hp: card.hp,
+            types: card.types,
+            abilities: card.abilities,
+            attacks: card.attacks,
+            weaknesses: card.weaknesses,
+            resistances: card.resistances,
+            retreatCost: card.retreatCost,
+            artist: card.artist,
+            flavorText: card.flavorText,
+            nationalPokedexNumbers: card.nationalPokedexNumbers
+          })) || [];
+          
+          allCards.push(...adaptedCards);
+          
+        } else if (gameConfig.apiType === 'tcgapi') {
+          // TCGS API para otros juegos
+          const isProduction = process.env.NODE_ENV === 'production';
+          const apiUrl = isProduction 
+            ? gameConfig.apiUrl 
+            : gameConfig.apiUrl.replace('https://www.apitcg.com/api', '/api/tcg');
+          
+          response = await fetch(
+            `${apiUrl}?name=${encodeURIComponent(sanitizedTerm)}&limit=20&page=${page}`,
+            { 
+              method: 'GET',
+              headers: isProduction ? {
+                'x-api-key': gameConfig.apiKey,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              } : {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              mode: 'cors',
+              timeout: 8000
+            }
+          );
+          
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          
+          data = await response.json();
+          
+          // Adaptar formato TCGS API
+          const adaptedCards = data.data?.map(card => ({
+            id: card.id || card.code,
+            name: card.name,
+            images: { 
+              small: card.images?.small || card.images?.large || 'https://via.placeholder.com/200',
+              large: card.images?.large || card.images?.small || 'https://via.placeholder.com/400'
+            },
+            set: { name: card.set?.name || 'Desconocido' },
+            rarity: card.rarity || 'Common',
+            tcgType: gameKey,
+            tcgName: gameConfig.name,
+            // TCGS specific fields
+            type: card.type,
+            cost: card.cost,
+            power: card.power,
+            counter: card.counter,
+            color: card.color,
+            attribute: card.attribute?.name || card.attribute,
+            ability: card.ability,
+            family: card.family,
+            features: card.features,
+            trigger: card.trigger
+          })) || [];
+          
+          allCards.push(...adaptedCards);
+        }
+        
+      } catch (error) {
+        console.warn(`Error searching ${gameConfig.name}:`, error);
+        errors.push(`${gameConfig.name}: ${error.message}`);
+      }
+    }
+    
+    return { cards: allCards, errors };
+  };
+
   const searchCards = useCallback(async (page = 1, skipCache = false) => {
     if (!searchTerm.trim()) {
       setCards([]);
@@ -314,7 +468,7 @@ export default function Marketplace() {
       }
 
       // Check cache first
-      const cacheKey = `all-tcgs-${sanitizedTerm}-${page}`;
+      const cacheKey = `unified-search-${sanitizedTerm}-${page}`;
       if (!skipCache && searchCache[cacheKey]) {
         const cached = searchCache[cacheKey];
         setCards(cached.cards);
@@ -326,40 +480,52 @@ export default function Marketplace() {
         return;
       }
 
-      // Buscar directamente en listings (cartas ya publicadas para venta)
-      let fetchedListings = [];
-      let totalCount = 0;
-
-      // Buscar directamente en listings de Firestore (cartas ya publicadas)
+      // 1. Buscar cartas en las APIs externas
+      const { cards: apiCards, errors: apiErrors } = await searchCardsInAPIs(sanitizedTerm, page);
+      
+      // 2. Buscar listings existentes en Firestore
       const listingsQuery = query(
         collection(db, 'listings'),
         where('status', '==', 'active'),
         orderBy('createdAt', 'desc'),
-        limit(100) // Aumentar límite para mejores filtros
+        limit(200)
       );
       
       const listingsSnapshot = await getDocs(listingsQuery);
       let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       
-      // Filtrar por término de búsqueda
+      // Filtrar listings por término de búsqueda
       if (sanitizedTerm) {
         allListings = allListings.filter(listing => 
           listing.cardName && listing.cardName.toLowerCase().includes(sanitizedTerm.toLowerCase())
         );
       }
       
-      // Aplicar filtros avanzados
-      allListings = applyFilters(allListings, filters);
+      // 3. Combinar cartas de API con listings para crear resultados unificados
+      const cardMap = new Map();
       
-      // Crear cards únicos basados en los listings
-      const uniqueCards = [];
-      const seenCardIds = new Set();
+      // Agregar cartas de APIs
+      apiCards.forEach(card => {
+        if (!cardMap.has(card.id)) {
+          cardMap.set(card.id, {
+            ...card,
+            sellers: [],
+            averagePrice: 0,
+            minPrice: 0,
+            maxPrice: 0,
+            totalStock: 0
+          });
+        }
+      });
       
-      fetchedListings.forEach(listing => {
-        if (!seenCardIds.has(listing.cardId)) {
-          seenCardIds.add(listing.cardId);
-          uniqueCards.push({
-            id: listing.cardId,
+      // Agregar listings como vendedores de las cartas
+      allListings.forEach(listing => {
+        const cardId = listing.cardId;
+        
+        // Si no existe la carta en el mapa, crearla basada en el listing
+        if (!cardMap.has(cardId)) {
+          cardMap.set(cardId, {
+            id: cardId,
             name: listing.cardName,
             images: { 
               small: listing.cardImage,
@@ -367,20 +533,68 @@ export default function Marketplace() {
             },
             set: { name: listing.setName || 'Desconocido' },
             rarity: listing.rarity || 'Sin rareza',
-            tcgType: listing.tcgType || 'unknown'
+            tcgType: listing.tcgType || 'unknown',
+            tcgName: TCG_GAMES[listing.tcgType]?.name || 'Desconocido',
+            sellers: [],
+            averagePrice: 0,
+            minPrice: 0,
+            maxPrice: 0,
+            totalStock: 0
           });
         }
+        
+        // Agregar el listing como vendedor
+        const card = cardMap.get(cardId);
+        card.sellers.push({
+          listingId: listing.id,
+          sellerId: listing.sellerId,
+          sellerName: listing.sellerName,
+          price: listing.price,
+          condition: listing.condition,
+          quantity: listing.availableQuantity || listing.quantity || 1,
+          createdAt: listing.createdAt,
+          userPhone: listing.userPhone
+        });
       });
-
-      totalCount = uniqueCards.length;
-
-      const itemsPerPage = 10;
+      
+      // 4. Calcular precios ponderados para cada carta
+      cardMap.forEach((card, cardId) => {
+        if (card.sellers.length > 0) {
+          const prices = card.sellers.map(s => s.price);
+          const quantities = card.sellers.map(s => s.quantity);
+          
+          card.minPrice = Math.min(...prices);
+          card.maxPrice = Math.max(...prices);
+          card.totalStock = quantities.reduce((sum, q) => sum + q, 0);
+          
+          // Precio ponderado por cantidad disponible
+          const totalWeightedPrice = card.sellers.reduce((sum, seller) => {
+            return sum + (seller.price * seller.quantity);
+          }, 0);
+          card.averagePrice = totalWeightedPrice / card.totalStock;
+          
+          // Ordenar vendedores por precio
+          card.sellers.sort((a, b) => a.price - b.price);
+        }
+      });
+      
+      // 5. Convertir a array y aplicar filtros
+      let finalCards = Array.from(cardMap.values());
+      
+      // Aplicar filtros avanzados
+      finalCards = applyFilters(finalCards, filters);
+      
+      // 6. Paginación
+      const itemsPerPage = 12;
+      const totalCount = finalCards.length;
       const calculatedPages = Math.ceil(totalCount / itemsPerPage);
-
+      const startIndex = (page - 1) * itemsPerPage;
+      const paginatedCards = finalCards.slice(startIndex, startIndex + itemsPerPage);
+      
       // Cache results
       const cacheData = {
-        cards: uniqueCards,
-        listings: fetchedListings,
+        cards: paginatedCards,
+        listings: allListings,
         totalResults: totalCount,
         totalPages: calculatedPages
       };
@@ -390,14 +604,17 @@ export default function Marketplace() {
         [cacheKey]: cacheData
       }));
 
-      setCards(uniqueCards);
-      setListings(fetchedListings);
+      setCards(paginatedCards);
+      setListings(allListings);
       setTotalResults(totalCount);
       setTotalPages(calculatedPages);
       setCurrentPage(page);
 
-      if (uniqueCards.length === 0) {
-        setSearchError('No se encontraron cartas en venta que coincidan con tu búsqueda.');
+      if (paginatedCards.length === 0) {
+        const errorMsg = apiErrors.length > 0 
+          ? `No se encontraron cartas. Errores de API: ${apiErrors.join(', ')}`
+          : 'No se encontraron cartas que coincidan con tu búsqueda.';
+        setSearchError(errorMsg);
       }
 
     } catch (error) {
@@ -509,8 +726,8 @@ export default function Marketplace() {
         {/* Header del Marketplace */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
           <div className="mb-3 mb-md-0">
-            <h2 className="section-title mb-2">🏪 Marketplace</h2>
-            <p className="text-muted mb-0">Encuentra cartas de Pokémon, One Piece, Dragon Ball y más TCGs</p>
+            <h2 className="section-title mb-2">🏪 Marketplace TCG Unificado</h2>
+            <p className="text-muted mb-0">Busca cartas en múltiples APIs y compara precios de vendedores en tiempo real</p>
           </div>
           <div className="d-flex gap-2">
             <Button 
@@ -533,7 +750,7 @@ export default function Marketplace() {
             </span>
             <Form.Control
               type="text"
-              placeholder="Buscar cartas en todos los TCGs (ej: Charizard, Luffy, Goku, Agumon...)"
+              placeholder="🔍 Buscar cartas en todos los TCGs - Pokémon, One Piece, Dragon Ball, Magic, Digimon y más..."
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchCards(1, true)}
@@ -715,7 +932,7 @@ export default function Marketplace() {
             </div>
             <Row className="g-4">
               {cards.map(card => (
-                <Col key={card.id} md={4} lg={3} className="mb-4">
+                <Col key={card.id} md={6} lg={4} className="mb-4">
                   <Card className="h-100 shadow-sm hover-effect position-relative">
                     <div className="position-relative">
                       <Card.Img 
@@ -723,8 +940,15 @@ export default function Marketplace() {
                         src={card.images?.small || 'https://via.placeholder.com/300'} 
                         className="card-img-custom"
                         onClick={() => openCardModal(card)}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: 'pointer', height: '250px', objectFit: 'contain', padding: '1rem' }}
                       />
+                      
+                      {/* Badge del TCG en esquina superior izquierda */}
+                      <div className="position-absolute top-0 start-0 p-2">
+                        <span className="badge bg-primary">{card.tcgName || 'TCG'}</span>
+                      </div>
+                      
+                      {/* Botón de favoritos */}
                       <div className="position-absolute top-0 end-0 p-2">
                         <Button
                           variant={favorites.includes(card.id) ? "danger" : "outline-light"}
@@ -744,6 +968,7 @@ export default function Marketplace() {
                         </Button>
                       </div>
                     </div>
+                    
                     <Card.Body 
                       className="d-flex flex-column" 
                       onClick={() => openCardModal(card)}
@@ -751,101 +976,110 @@ export default function Marketplace() {
                     >
                       <Card.Title className="fs-5 mb-2">{card.name}</Card.Title>
                       <Card.Text className="text-muted small mb-3">
-                        {card.set?.name} - {card.rarity || 'Sin rareza'}
+                        {card.set?.name} • {card.rarity || 'Sin rareza'}
                       </Card.Text>
-                      <div className="mt-auto">
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                          <h6 className="mb-0">Vendedores:</h6>
-                          {listings.filter(l => l.cardId === card.id).length > 1 && (
-                            <Button 
-                              variant="outline-info" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openComparator({
-                                  id: card.id,
-                                  name: card.name,
-                                  image: card.images?.small
-                                });
-                              }}
-                              className="d-flex align-items-center gap-1"
-                              title="Comparar precios de todos los vendedores"
-                            >
-                              <FaExchangeAlt size={12} />
-                              <span className="d-none d-lg-inline">Comparar</span>
-                            </Button>
+                      
+                      {/* Información de precios */}
+                      {card.sellers && card.sellers.length > 0 ? (
+                        <div className="mb-3">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <small className="text-muted">Precio:</small>
+                            <div className="text-end">
+                              {card.minPrice !== card.maxPrice ? (
+                                <>
+                                  <div className="fs-6 fw-bold text-success">${card.minPrice.toFixed(2)} - ${card.maxPrice.toFixed(2)}</div>
+                                  <small className="text-muted">Promedio: ${card.averagePrice.toFixed(2)}</small>
+                                </>
+                              ) : (
+                                <div className="fs-6 fw-bold text-success">${card.minPrice.toFixed(2)}</div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <small className="text-muted">Vendedores:</small>
+                            <span className="badge bg-info">{card.sellers.length}</span>
+                          </div>
+                          
+                          <div className="d-flex justify-content-between align-items-center mb-3">
+                            <small className="text-muted">Stock total:</small>
+                            <span className="badge bg-secondary">{card.totalStock}</span>
+                          </div>
+                          
+                          {/* Mejor precio destacado */}
+                          <div className="border rounded p-2 mb-3 bg-light">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div>
+                                <div className="fw-bold text-success">${card.sellers[0].price}</div>
+                                <small className="text-muted">{card.sellers[0].condition}</small>
+                                <div className="small">
+                                  <strong>{card.sellers[0].sellerName || "Anónimo"}</strong>
+                                </div>
+                              </div>
+                              <div className="d-flex gap-1">
+                                <Button 
+                                  variant="outline-primary" 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Crear objeto listing compatible
+                                    const listing = {
+                                      id: card.sellers[0].listingId,
+                                      cardId: card.id,
+                                      cardName: card.name,
+                                      cardImage: card.images.small,
+                                      price: card.sellers[0].price,
+                                      condition: card.sellers[0].condition,
+                                      sellerId: card.sellers[0].sellerId,
+                                      sellerName: card.sellers[0].sellerName,
+                                      availableQuantity: card.sellers[0].quantity
+                                    };
+                                    addToCart(listing);
+                                  }}
+                                  title="Agregar al carrito"
+                                >
+                                  <FaShoppingCart size={14} />
+                                </Button>
+                                <Button 
+                                  variant="outline-success" 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`https://wa.me/${card.sellers[0].userPhone}`, '_blank');
+                                  }}
+                                  title="Contactar por WhatsApp"
+                                >
+                                  <FaWhatsapp size={14} />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {card.sellers.length > 1 && (
+                            <div className="text-center">
+                              <Button 
+                                variant="link" 
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Abrir modal con todos los vendedores
+                                  openCardModal(card);
+                                }}
+                                className="text-decoration-none"
+                              >
+                                Ver {card.sellers.length - 1} vendedores más
+                              </Button>
+                            </div>
                           )}
                         </div>
-                        <ListGroup className="mb-3">
-                          {listings
-                            .filter(l => l.cardId === card.id)
-                            .slice(0, 2) // Mostrar solo los primeros 2 vendedores
-                            .map((listing, index) => (
-                              <ListGroup.Item key={`${listing.id}-${index}`} className="py-2">
-                                <div className="d-flex justify-content-between align-items-center">
-                                  <div>
-                                    <h6 className="mb-0 text-primary">${listing.price}</h6>
-                                    <div className="text-muted small">
-                                      <div>{listing.condition}</div>
-                                      <div className="fw-bold">
-                                        Vendedor: {listing.sellerName || "Desconocido"}
-                                      </div>
-                                      <SellerRating sellerId={listing.sellerId} />
-                                    </div>
-                                  </div>
-                                  <div className="d-flex gap-2">
-                                    <Button 
-                                      variant="outline-primary" 
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        addToCart(listing);
-                                      }}
-                                      title="Agregar al carrito"
-                                    >
-                                      <FaShoppingCart size={18} />
-                                    </Button>
-                                    <Button 
-                                      variant="outline-success" 
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(`https://wa.me/${listing.userPhone}`, '_blank');
-                                      }}
-                                      title="Contactar por WhatsApp"
-                                    >
-                                      <FaWhatsapp size={18} />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </ListGroup.Item>
-                            ))}
-                        </ListGroup>
-                        {listings.filter(l => l.cardId === card.id).length > 2 && (
-                          <div className="text-center">
-                            <Button 
-                              variant="link" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openComparator({
-                                  id: card.id,
-                                  name: card.name,
-                                  image: card.images?.small
-                                });
-                              }}
-                              className="text-decoration-none"
-                            >
-                              Ver {listings.filter(l => l.cardId === card.id).length - 2} vendedores más...
-                            </Button>
+                      ) : (
+                        <div className="text-center text-muted py-3 mb-3">
+                          <small>💤 No hay vendedores actualmente</small>
+                          <div className="mt-2">
+                            <small className="text-info">Haz clic para ver detalles de la carta</small>
                           </div>
-                        )}
-                        {listings.filter(l => l.cardId === card.id).length === 0 && (
-                          <div className="text-center text-muted py-2">
-                            <small>No hay vendedores para esta carta</small>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </Card.Body>
                   </Card>
                 </Col>
@@ -859,116 +1093,248 @@ export default function Marketplace() {
 
       <SellCardModal show={showSellModal} handleClose={() => setShowSellModal(false)} />
       
-      {/* Modal de Detalle de Carta */}
+      {/* Modal Gigante de Detalle de Carta */}
       <Modal 
         show={showCardModal} 
         onHide={closeCardModal}
-        size="lg"
+        size="xl"
         centered
+        className="card-detail-modal"
       >
-        <Modal.Header closeButton className="border-0">
+        <Modal.Header closeButton className="border-0 bg-light">
           <Modal.Title className="d-flex align-items-center gap-2">
-            <FaTag className="text-primary" />
+            <span className="badge bg-primary">{selectedCard?.tcgName || 'TCG'}</span>
             {selectedCard?.name}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="p-0">
+        <Modal.Body className="p-0" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
           {selectedCard && (
             <div className="row g-0">
-              <div className="col-md-5">
-                <img 
-                  src={selectedCard.images?.large || selectedCard.images?.small || 'https://via.placeholder.com/400'} 
-                  alt={selectedCard.name}
-                  className="img-fluid rounded-start"
-                  style={{ width: '100%', height: '400px', objectFit: 'contain', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}
-                />
+              {/* Columna izquierda: Imagen gigante de la carta */}
+              <div className="col-lg-5 bg-gradient" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                <div className="p-4 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '500px' }}>
+                  <img 
+                    src={selectedCard.images?.large || selectedCard.images?.small || 'https://via.placeholder.com/400'} 
+                    alt={selectedCard.name}
+                    className="img-fluid rounded shadow-lg"
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '450px', 
+                      objectFit: 'contain',
+                      border: '3px solid rgba(255,255,255,0.3)'
+                    }}
+                  />
+                  <div className="mt-3 text-center">
+                    <Button
+                      variant={favorites.includes(selectedCard?.id) ? "danger" : "light"}
+                      onClick={() => selectedCard && toggleFavorite(selectedCard.id)}
+                      className="btn-lg"
+                    >
+                      <FaHeart className="me-2" />
+                      {favorites.includes(selectedCard?.id) ? "💖 En favoritos" : "🤍 Agregar a favoritos"}
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div className="col-md-7">
-                <div className="card-body p-4">
-                  <h4 className="card-title mb-3">{selectedCard.name}</h4>
-                  
-                  <div className="mb-3">
-                    <div className="d-flex align-items-center gap-2 mb-2">
-                      <FaTag className="text-muted" size={14} />
-                      <strong>Set:</strong> {selectedCard.set?.name || 'Desconocido'}
+              
+              {/* Columna derecha: Información y vendedores */}
+              <div className="col-lg-7">
+                <div className="p-4">
+                  {/* Header de la carta */}
+                  <div className="mb-4">
+                    <h3 className="card-title mb-2">{selectedCard.name}</h3>
+                    <div className="d-flex flex-wrap gap-2 mb-3">
+                      <span className="badge bg-secondary">{selectedCard.set?.name || 'Desconocido'}</span>
+                      <span className="badge bg-warning text-dark">{selectedCard.rarity || 'Sin rareza'}</span>
+                      {selectedCard.tcgName && <span className="badge bg-info">{selectedCard.tcgName}</span>}
                     </div>
-                    <div className="d-flex align-items-center gap-2 mb-2">
-                      <FaStar className="text-warning" size={14} />
-                      <strong>Rareza:</strong> {selectedCard.rarity || 'Sin rareza'}
-                    </div>
-                    {selectedCard.artist && (
-                      <div className="d-flex align-items-center gap-2 mb-2">
-                        <FaUser className="text-muted" size={14} />
-                        <strong>Artista:</strong> {selectedCard.artist}
-                      </div>
-                    )}
                   </div>
 
+                  {/* Información específica por TCG */}
+                  <div className="mb-4">
+                    <h5 className="mb-3">📊 Detalles de la carta</h5>
+                    <div className="row g-3">
+                      {/* Campos comunes */}
+                      <div className="col-6">
+                        <div className="d-flex align-items-center gap-2">
+                          <FaTag className="text-muted" size={14} />
+                          <strong>Set:</strong> {selectedCard.set?.name || 'Desconocido'}
+                        </div>
+                      </div>
+                      <div className="col-6">
+                        <div className="d-flex align-items-center gap-2">
+                          <FaStar className="text-warning" size={14} />
+                          <strong>Rareza:</strong> {selectedCard.rarity || 'Sin rareza'}
+                        </div>
+                      </div>
+                      
+                      {/* Campos específicos de Pokémon */}
+                      {selectedCard.tcgType === 'pokemon' && (
+                        <>
+                          {selectedCard.hp && (
+                            <div className="col-6">
+                              <strong>HP:</strong> {selectedCard.hp}
+                            </div>
+                          )}
+                          {selectedCard.types && (
+                            <div className="col-6">
+                              <strong>Tipo:</strong> {selectedCard.types.join(', ')}
+                            </div>
+                          )}
+                          {selectedCard.artist && (
+                            <div className="col-6">
+                              <div className="d-flex align-items-center gap-2">
+                                <FaUser className="text-muted" size={14} />
+                                <strong>Artista:</strong> {selectedCard.artist}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Campos específicos de otros TCGs */}
+                      {selectedCard.tcgType !== 'pokemon' && (
+                        <>
+                          {selectedCard.cost && (
+                            <div className="col-6">
+                              <strong>Costo:</strong> {selectedCard.cost}
+                            </div>
+                          )}
+                          {selectedCard.power && (
+                            <div className="col-6">
+                              <strong>Poder:</strong> {selectedCard.power}
+                            </div>
+                          )}
+                          {selectedCard.color && (
+                            <div className="col-6">
+                              <strong>Color:</strong> {selectedCard.color}
+                            </div>
+                          )}
+                          {selectedCard.attribute && (
+                            <div className="col-6">
+                              <strong>Atributo:</strong> {selectedCard.attribute}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ataques (solo Pokémon) */}
                   {selectedCard.attacks && selectedCard.attacks.length > 0 && (
-                    <div className="mb-3">
-                      <h6 className="fw-bold">Ataques:</h6>
+                    <div className="mb-4">
+                      <h5 className="mb-3">⚔️ Ataques</h5>
                       {selectedCard.attacks.map((attack, index) => (
-                        <div key={index} className="border rounded p-2 mb-2 bg-light">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <strong>{attack.name}</strong>
+                        <div key={index} className="border rounded p-3 mb-2 bg-light">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong className="text-primary">{attack.name}</strong>
                             <span className="badge bg-danger">{attack.damage || '-'}</span>
                           </div>
                           {attack.text && (
                             <small className="text-muted">{attack.text}</small>
+                          )}
+                          {attack.cost && (
+                            <div className="mt-1">
+                              <small><strong>Costo:</strong> {attack.cost.join(', ')}</small>
+                            </div>
                           )}
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {selectedCard.flavorText && (
-                    <div className="mb-3">
-                      <h6 className="fw-bold">Descripción:</h6>
-                      <p className="text-muted fst-italic">"{selectedCard.flavorText}"</p>
+                  {/* Habilidades (otros TCGs) */}
+                  {selectedCard.ability && (
+                    <div className="mb-4">
+                      <h5 className="mb-3">✨ Habilidad</h5>
+                      <div className="border rounded p-3 bg-light">
+                        <small className="text-muted">{selectedCard.ability}</small>
+                      </div>
                     </div>
                   )}
 
+                  {/* Descripción/Flavor Text */}
+                  {selectedCard.flavorText && (
+                    <div className="mb-4">
+                      <h5 className="mb-3">📖 Descripción</h5>
+                      <blockquote className="blockquote">
+                        <p className="text-muted fst-italic">"{selectedCard.flavorText}"</p>
+                      </blockquote>
+                    </div>
+                  )}
+
+                  {/* Lista de vendedores */}
                   <div className="mb-3">
-                    <h6 className="fw-bold">Vendedores disponibles:</h6>
-                    {listings.filter(l => l.cardId === selectedCard.id).length > 0 ? (
-                      <div className="row g-2">
-                        {listings.filter(l => l.cardId === selectedCard.id).slice(0, 3).map((listing, index) => (
-                          <div key={index} className="col-12">
-                            <div className="border rounded p-3 d-flex justify-content-between align-items-center">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h5 className="mb-0">🏪 Vendedores disponibles</h5>
+                      {selectedCard.sellers && selectedCard.sellers.length > 0 && (
+                        <div className="d-flex gap-2">
+                          <span className="badge bg-success">Desde ${selectedCard.minPrice.toFixed(2)}</span>
+                          {selectedCard.minPrice !== selectedCard.maxPrice && (
+                            <span className="badge bg-info">Hasta ${selectedCard.maxPrice.toFixed(2)}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedCard.sellers && selectedCard.sellers.length > 0 ? (
+                      <div className="seller-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        {selectedCard.sellers.map((seller, index) => (
+                          <div key={index} className="border rounded p-3 mb-3 seller-card">
+                            <div className="d-flex justify-content-between align-items-start">
                               <div className="flex-grow-1">
-                                <div className="fw-bold text-success fs-5">${listing.price}</div>
-                                <small className="text-muted d-block">
-                                  {listing.condition} • {listing.sellerName || "Anónimo"}
-                                </small>
-                                <small className="text-muted">
-                                  Stock: {listing.availableQuantity || listing.quantity || 1} disponible{(listing.availableQuantity || listing.quantity || 1) > 1 ? 's' : ''}
-                                </small>
+                                <div className="d-flex align-items-center gap-2 mb-2">
+                                  <h6 className="mb-0 text-success fs-4">${seller.price}</h6>
+                                  {index === 0 && <span className="badge bg-warning text-dark">Mejor precio</span>}
+                                </div>
+                                <div className="mb-2">
+                                  <strong>Condición:</strong> {seller.condition}
+                                </div>
+                                <div className="mb-2">
+                                  <strong>Vendedor:</strong> {seller.sellerName || "Anónimo"}
+                                </div>
+                                <div className="mb-2">
+                                  <strong>Stock:</strong> {seller.quantity} disponible{seller.quantity > 1 ? 's' : ''}
+                                </div>
+                                <SellerRating sellerId={seller.sellerId} />
                               </div>
-                              <div className="d-flex gap-2">
+                              <div className="d-flex flex-column gap-2">
                                 <Button 
                                   variant="primary" 
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    // Crear objeto listing compatible
+                                    const listing = {
+                                      id: seller.listingId,
+                                      cardId: selectedCard.id,
+                                      cardName: selectedCard.name,
+                                      cardImage: selectedCard.images.small,
+                                      price: seller.price,
+                                      condition: seller.condition,
+                                      sellerId: seller.sellerId,
+                                      sellerName: seller.sellerName,
+                                      availableQuantity: seller.quantity
+                                    };
                                     addToCart(listing);
                                     alert('¡Carta agregada al carrito!');
                                   }}
                                   className="d-flex align-items-center gap-1"
                                 >
-                                  <FaShoppingCart size={12} />
-                                  <span className="d-none d-md-inline">Carrito</span>
+                                  <FaShoppingCart size={14} />
+                                  Carrito
                                 </Button>
                                 <Button 
                                   variant="success" 
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    window.open(`https://wa.me/${listing.userPhone}`, '_blank');
+                                    window.open(`https://wa.me/${seller.userPhone}`, '_blank');
                                   }}
                                   className="d-flex align-items-center gap-1"
                                 >
-                                  <FaWhatsapp size={12} />
-                                  <span className="d-none d-md-inline">WhatsApp</span>
+                                  <FaWhatsapp size={14} />
+                                  WhatsApp
                                 </Button>
                               </div>
                             </div>
@@ -976,8 +1342,12 @@ export default function Marketplace() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center text-muted py-3">
-                        <small>No hay vendedores disponibles para esta carta</small>
+                      <div className="text-center text-muted py-4">
+                        <div className="mb-3">
+                          <FaExchangeAlt size={48} className="text-muted opacity-50" />
+                        </div>
+                        <h6>No hay vendedores disponibles</h6>
+                        <p className="mb-0">Esta carta no está siendo vendida actualmente por ningún usuario.</p>
                       </div>
                     )}
                   </div>
@@ -986,15 +1356,8 @@ export default function Marketplace() {
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer className="border-0">
-          <Button
-            variant={favorites.includes(selectedCard?.id) ? "danger" : "outline-danger"}
-            onClick={() => selectedCard && toggleFavorite(selectedCard.id)}
-          >
-            <FaHeart className="me-2" />
-            {favorites.includes(selectedCard?.id) ? "Quitar de favoritos" : "Agregar a favoritos"}
-          </Button>
-          <Button variant="secondary" onClick={closeCardModal}>
+        <Modal.Footer className="border-0 bg-light">
+          <Button variant="secondary" onClick={closeCardModal} size="lg">
             Cerrar
           </Button>
         </Modal.Footer>
