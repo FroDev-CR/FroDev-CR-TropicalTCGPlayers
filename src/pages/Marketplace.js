@@ -15,24 +15,27 @@ import ReactStars from "react-rating-stars-component";
 const POKEMON_API_KEY = process.env.REACT_APP_POKEMON_API_KEY;
 const TCG_API_KEY = process.env.REACT_APP_TCG_API_KEY;
 
-// Configuración de juegos TCG
+// Configuración de juegos TCG - SEPARADAS CORRECTAMENTE
 const TCG_GAMES = {
+  // API OFICIAL DE POKÉMON (api.pokemontcg.io) - La más completa para Pokémon
   pokemon: {
     name: 'Pokémon TCG',
     apiUrl: 'https://api.pokemontcg.io/v2/cards',
     apiKey: POKEMON_API_KEY,
-    searchParam: 'name',
+    searchParam: 'q', // Usa parámetro 'q' con sintaxis especial
     icon: '🔥',
-    available: true,
+    available: !!POKEMON_API_KEY, // Solo disponible si hay API key
     apiType: 'pokemon'
   },
+  
+  // TCGS API (apitcg.com) - EXCLUIMOS POKEMON para evitar duplicados
   onepiece: {
     name: 'One Piece',
     apiUrl: 'https://www.apitcg.com/api/one-piece/cards',
     apiKey: TCG_API_KEY,
     searchParam: 'name',
     icon: '🏴‍☠️',
-    available: true,
+    available: !!TCG_API_KEY,
     apiType: 'tcgapi'
   },
   dragonball: {
@@ -41,7 +44,7 @@ const TCG_GAMES = {
     apiKey: TCG_API_KEY,
     searchParam: 'name',
     icon: '🐉',
-    available: true,
+    available: !!TCG_API_KEY,
     apiType: 'tcgapi'
   },
   digimon: {
@@ -50,7 +53,7 @@ const TCG_GAMES = {
     apiKey: TCG_API_KEY,
     searchParam: 'name',
     icon: '🦖',
-    available: true,
+    available: !!TCG_API_KEY,
     apiType: 'tcgapi'
   },
   magic: {
@@ -59,7 +62,7 @@ const TCG_GAMES = {
     apiKey: TCG_API_KEY,
     searchParam: 'name',
     icon: '🪄',
-    available: true,
+    available: !!TCG_API_KEY,
     apiType: 'tcgapi'
   },
   unionarena: {
@@ -68,7 +71,7 @@ const TCG_GAMES = {
     apiKey: TCG_API_KEY,
     searchParam: 'name',
     icon: '⚔️',
-    available: true,
+    available: !!TCG_API_KEY,
     apiType: 'tcgapi'
   },
   gundam: {
@@ -77,7 +80,7 @@ const TCG_GAMES = {
     apiKey: TCG_API_KEY,
     searchParam: 'name',
     icon: '🤖',
-    available: true,
+    available: !!TCG_API_KEY,
     apiType: 'tcgapi'
   }
 };
@@ -314,12 +317,18 @@ export default function Marketplace() {
       .replace(/[^a-z0-9\s\-']/g, '')
       .replace(/\s+/g, ' ');
     
+    console.log(`🔍 Iniciando búsqueda: "${sanitizedTerm}" (página ${page})`);
+    console.log(`🔑 APIs disponibles:`, {
+      pokemon: !!POKEMON_API_KEY,
+      tcgGeneral: !!TCG_API_KEY
+    });
+    
     const allCards = [];
     const errors = [];
 
     // Verificar que tenemos las API keys
     if (!POKEMON_API_KEY && !TCG_API_KEY) {
-      errors.push('No se encontraron claves de API configuradas');
+      errors.push('⚠️ No se encontraron claves de API configuradas en las variables de entorno');
       return { cards: [], errors };
     }
 
@@ -336,18 +345,21 @@ export default function Marketplace() {
         let data;
         
         if (gameConfig.apiType === 'pokemon') {
-          // Pokemon TCG API
+          // Pokemon TCG API OFICIAL - Sintaxis especial según documentación
           let queryTerm;
+          
+          // Si contiene espacios, usar búsqueda exacta con comillas
           if (sanitizedTerm.includes(' ')) {
             queryTerm = `name:"${sanitizedTerm}"`;
           } else {
+            // Para términos simples, usar wildcard para encontrar más resultados
             queryTerm = `name:${sanitizedTerm}*`;
           }
           
-          const url = `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=10`;
+          const url = `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=15`;
           
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), 8000); // Más tiempo para Pokemon API
           
           response = await fetch(url, { 
             headers: {
@@ -360,9 +372,16 @@ export default function Marketplace() {
           
           clearTimeout(timeoutId);
           
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          if (!response.ok) {
+            throw new Error(`Pokemon API: HTTP ${response.status}`);
+          }
           
           data = await response.json();
+          
+          // Verificar que la respuesta tenga el formato esperado
+          if (!data.data) {
+            throw new Error('Pokemon API: Invalid response format');
+          }
           
           // Adaptar formato Pokemon TCG
           const adaptedCards = data.data?.map(card => ({
@@ -394,37 +413,44 @@ export default function Marketplace() {
           allCards.push(...adaptedCards);
           
         } else if (gameConfig.apiType === 'tcgapi') {
-          // TCGS API para otros juegos
+          // TCGS API para otros juegos (NO Pokémon)
           const isProduction = process.env.NODE_ENV === 'production';
           const apiUrl = isProduction 
             ? gameConfig.apiUrl 
             : gameConfig.apiUrl.replace('https://www.apitcg.com/api', '/api/tcg');
           
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
           
-          response = await fetch(
-            `${apiUrl}?name=${encodeURIComponent(sanitizedTerm)}&limit=10&page=${page}`,
-            { 
-              method: 'GET',
-              headers: isProduction ? {
-                'x-api-key': gameConfig.apiKey,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              } : {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              mode: 'cors',
-              signal: controller.signal
-            }
-          );
+          // Construir URL con parámetros según documentación de TCGS API
+          const searchUrl = `${apiUrl}?name=${encodeURIComponent(sanitizedTerm)}&limit=15&page=${page}`;
+          
+          response = await fetch(searchUrl, { 
+            method: 'GET',
+            headers: isProduction ? {
+              'x-api-key': gameConfig.apiKey,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            } : {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            mode: 'cors',
+            signal: controller.signal
+          });
           
           clearTimeout(timeoutId);
           
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          if (!response.ok) {
+            throw new Error(`${gameConfig.name} API: HTTP ${response.status}`);
+          }
           
           data = await response.json();
+          
+          // Verificar que la respuesta tenga el formato esperado
+          if (!data.data && !Array.isArray(data.data)) {
+            throw new Error(`${gameConfig.name} API: Invalid response format`);
+          }
           
           // Adaptar formato TCGS API
           const adaptedCards = data.data?.map(card => ({
@@ -455,9 +481,16 @@ export default function Marketplace() {
         }
         
       } catch (error) {
-        console.warn(`Error searching ${gameConfig.name}:`, error);
+        console.warn(`❌ Error searching ${gameConfig.name}:`, error);
+        
         if (error.name === 'AbortError') {
-          errors.push(`${gameConfig.name}: Timeout (5s)`);
+          errors.push(`${gameConfig.name}: Timeout - API muy lenta`);
+        } else if (error.message.includes('HTTP 401')) {
+          errors.push(`${gameConfig.name}: API Key inválida`);
+        } else if (error.message.includes('HTTP 429')) {
+          errors.push(`${gameConfig.name}: Límite de requests excedido`);
+        } else if (error.message.includes('HTTP 404')) {
+          errors.push(`${gameConfig.name}: No se encontraron resultados`);
         } else {
           errors.push(`${gameConfig.name}: ${error.message}`);
         }
