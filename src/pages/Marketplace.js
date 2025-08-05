@@ -1,6 +1,6 @@
 // src/pages/Marketplace.js
 import { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Form, Spinner, ListGroup, Button, Pagination, Modal, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Spinner, Button, Pagination, Modal, Alert } from 'react-bootstrap';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion } from 'framer-motion';
@@ -8,7 +8,6 @@ import { useCart } from '../contexts/CartContext';
 import SellCardModal from '../components/SellCardModal';
 import MarketplaceFilters from '../components/MarketplaceFilters';
 import FeaturedSections from '../components/FeaturedSections';
-import PriceComparator from '../components/PriceComparator';
 import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaUser, FaTag, FaStar, FaExchangeAlt, FaFilter } from 'react-icons/fa';
 import ReactStars from "react-rating-stars-component";
 
@@ -94,13 +93,11 @@ const SellerRating = ({ sellerId }) => {
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cards, setCards] = useState([]);
-  const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
   const [showSellModal, setShowSellModal] = useState(false);
-  const [searchCache, setSearchCache] = useState({});
   const [debounceTimer, setDebounceTimer] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -117,8 +114,6 @@ export default function Marketplace() {
     minRating: 0,
     sortBy: 'newest'
   });
-  const [showComparator, setShowComparator] = useState(false);
-  const [comparatorCard, setComparatorCard] = useState(null);
   
   
   const { addToCart } = useCart();
@@ -280,196 +275,11 @@ export default function Marketplace() {
     return { listings: allListings, errors: [] };
   };
 
-  const searchCards = useCallback(async (page = 1, skipCache = false) => {
-    if (!searchTerm.trim()) {
-      setCards([]);
-      setListings([]);
-      setTotalResults(0);
-      setTotalPages(1);
-      setCurrentPage(1);
-      return;
-    }
-
-    setLoading(true);
-    setSearchError('');
-    
-    try {
-      const sanitizedTerm = searchTerm
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9\s\-']/g, '')
-        .replace(/\s+/g, ' ');
-      
-      if (!sanitizedTerm) {
-        throw new Error('Por favor ingresa un término de búsqueda válido');
-      }
-
-      // Check cache first
-      const cacheKey = `unified-search-${sanitizedTerm}-${page}`;
-      if (!skipCache && searchCache[cacheKey]) {
-        const cached = searchCache[cacheKey];
-        setCards(cached.cards);
-        setListings(cached.listings);
-        setTotalResults(cached.totalResults);
-        setTotalPages(cached.totalPages);
-        setCurrentPage(page);
-        setLoading(false);
-        return;
-      }
-
-      // 1. Buscar cartas en las APIs externas
-      const { cards: apiCards, errors: apiErrors } = await searchCardsInAPIs(sanitizedTerm, page);
-      
-      // 2. Buscar listings existentes en Firestore
-      const listingsQuery = query(
-        collection(db, 'listings'),
-        where('status', '==', 'active'),
-        orderBy('createdAt', 'desc'),
-        limit(200)
-      );
-      
-      const listingsSnapshot = await getDocs(listingsQuery);
-      let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      // Filtrar listings por término de búsqueda
-      if (sanitizedTerm) {
-        allListings = allListings.filter(listing => 
-          listing.cardName && listing.cardName.toLowerCase().includes(sanitizedTerm.toLowerCase())
-        );
-      }
-      
-      // 3. Combinar cartas de API con listings para crear resultados unificados
-      const cardMap = new Map();
-      
-      // Agregar cartas de APIs
-      apiCards.forEach(card => {
-        if (!cardMap.has(card.id)) {
-          cardMap.set(card.id, {
-            ...card,
-            sellers: [],
-            averagePrice: 0,
-            minPrice: 0,
-            maxPrice: 0,
-            totalStock: 0
-          });
-        }
-      });
-      
-      // Agregar listings como vendedores de las cartas
-      allListings.forEach(listing => {
-        const cardId = listing.cardId;
-        
-        // Si no existe la carta en el mapa, crearla basada en el listing
-        if (!cardMap.has(cardId)) {
-          cardMap.set(cardId, {
-            id: cardId,
-            name: listing.cardName,
-            images: { 
-              small: listing.cardImage,
-              large: listing.cardImage
-            },
-            set: { name: listing.setName || 'Desconocido' },
-            rarity: listing.rarity || 'Sin rareza',
-            tcgType: listing.tcgType || 'unknown',
-            tcgName: TCG_GAMES[listing.tcgType]?.name || 'Desconocido',
-            sellers: [],
-            averagePrice: 0,
-            minPrice: 0,
-            maxPrice: 0,
-            totalStock: 0
-          });
-        }
-        
-        // Agregar el listing como vendedor
-        const card = cardMap.get(cardId);
-        card.sellers.push({
-          listingId: listing.id,
-          sellerId: listing.sellerId,
-          sellerName: listing.sellerName,
-          price: listing.price,
-          condition: listing.condition,
-          quantity: listing.availableQuantity || listing.quantity || 1,
-          createdAt: listing.createdAt,
-          userPhone: listing.userPhone
-        });
-      });
-      
-      // 4. Calcular precios ponderados para cada carta
-      cardMap.forEach((card, cardId) => {
-        if (card.sellers.length > 0) {
-          const prices = card.sellers.map(s => s.price);
-          const quantities = card.sellers.map(s => s.quantity);
-          
-          card.minPrice = Math.min(...prices);
-          card.maxPrice = Math.max(...prices);
-          card.totalStock = quantities.reduce((sum, q) => sum + q, 0);
-          
-          // Precio ponderado por cantidad disponible
-          const totalWeightedPrice = card.sellers.reduce((sum, seller) => {
-            return sum + (seller.price * seller.quantity);
-          }, 0);
-          card.averagePrice = totalWeightedPrice / card.totalStock;
-          
-          // Ordenar vendedores por precio
-          card.sellers.sort((a, b) => a.price - b.price);
-        }
-      });
-      
-      // 5. Convertir a array y aplicar filtros
-      let finalCards = Array.from(cardMap.values());
-      
-      // Aplicar filtros avanzados
-      finalCards = applyFilters(finalCards, filters);
-      
-      // 6. Paginación
-      const itemsPerPage = 12;
-      const totalCount = finalCards.length;
-      const calculatedPages = Math.ceil(totalCount / itemsPerPage);
-      const startIndex = (page - 1) * itemsPerPage;
-      const paginatedCards = finalCards.slice(startIndex, startIndex + itemsPerPage);
-      
-      // Cache results
-      const cacheData = {
-        cards: paginatedCards,
-        listings: allListings,
-        totalResults: totalCount,
-        totalPages: calculatedPages
-      };
-      
-      setSearchCache(prev => ({
-        ...prev,
-        [cacheKey]: cacheData
-      }));
-
-      setCards(paginatedCards);
-      setListings(allListings);
-      setTotalResults(totalCount);
-      setTotalPages(calculatedPages);
-      setCurrentPage(page);
-
-      if (paginatedCards.length === 0) {
-        const errorMsg = apiErrors.length > 0 
-          ? `No se encontraron cartas. Errores de API: ${apiErrors.join(', ')}`
-          : 'No se encontraron cartas que coincidan con tu búsqueda.';
-        setSearchError(errorMsg);
-      }
-
-    } catch (error) {
-      console.error('Error searching cards:', error);
-      setCards([]);
-      setListings([]);
-      setTotalResults(0);
-      setTotalPages(1);
-      setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
-    }
-    setLoading(false);
-  }, [searchTerm, filters]); // Remover searchCache de dependencies
 
   // Función de búsqueda simple sin bucles
   const performSearch = useCallback(async (term, page = 1) => {
     if (!term.trim()) {
       setCards([]);
-      setListings([]);
       setTotalResults(0);
       setTotalPages(1);
       setCurrentPage(1);
@@ -481,7 +291,7 @@ export default function Marketplace() {
     
     try {
       // Búsqueda súper rápida solo en listings existentes
-      const { listings: allListings, errors } = await searchCardsSimple(term, page);
+      const { listings: allListings } = await searchCardsSimple(term, page);
       
       // Crear cards únicos basados en los listings
       const cardMap = new Map();
@@ -550,7 +360,6 @@ export default function Marketplace() {
       const paginatedCards = finalCards.slice(startIndex, startIndex + itemsPerPage);
 
       setCards(paginatedCards);
-      setListings(allListings);
       setTotalResults(totalCount);
       setTotalPages(calculatedPages);
       setCurrentPage(page);
@@ -564,7 +373,6 @@ export default function Marketplace() {
     } catch (error) {
       console.error('Error searching cards:', error);
       setCards([]);
-      setListings([]);
       setTotalResults(0);
       setTotalPages(1);
       setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
@@ -591,7 +399,6 @@ export default function Marketplace() {
     
     if (!value.trim()) {
       setCards([]);
-      setListings([]);
       setTotalResults(0);
       setTotalPages(1);
       setCurrentPage(1);
@@ -641,16 +448,6 @@ export default function Marketplace() {
     setShowCardModal(false);
   };
 
-  // Funciones para el comparador de precios
-  const openComparator = (card) => {
-    setComparatorCard(card);
-    setShowComparator(true);
-  };
-
-  const closeComparator = () => {
-    setComparatorCard(null);
-    setShowComparator(false);
-  };
 
   // Función para manejar cambios en filtros
   const handleFiltersChange = (newFilters) => {
@@ -1310,14 +1107,6 @@ export default function Marketplace() {
         </Modal.Footer>
       </Modal>
 
-      {/* Comparador de Precios */}
-      <PriceComparator
-        show={showComparator}
-        onHide={closeComparator}
-        cardId={comparatorCard?.id}
-        cardName={comparatorCard?.name}
-        cardImage={comparatorCard?.image}
-      />
     </motion.div>
   );
 }
