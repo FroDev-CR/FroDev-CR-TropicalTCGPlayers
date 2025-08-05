@@ -6,10 +6,10 @@ import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage"; // ✅ Importar storage
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBlUcQayBNnslKhJ5bCw21HWDHn7AlXdAw",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: "tropical-tcg-players-5a199.firebaseapp.com",
   projectId: "tropical-tcg-players-5a199",
-  storageBucket: "tropical-tcg-players-5a199.appspot.com", // ✅ corregido (antes decía .app)
+  storageBucket: "tropical-tcg-players-5a199.appspot.com",
   messagingSenderId: "943837881919",
   appId: "1:943837881919:web:471ae207891d2f07837a8a",
   measurementId: "G-V4BRPDYE31"

@@ -7,8 +7,8 @@ import { FaSearch, FaTimes, FaCheck, FaInfoCircle, FaDragon, FaSkull, FaRocket, 
 import { GiPirateCaptain, GiRobotGolem } from 'react-icons/gi';
 import { useCart } from '../contexts/CartContext';
 
-const POKEMON_API_KEY = '1f1c90be-e3da-4ff5-9753-8a662f20c2f0';
-const TCG_API_KEY = 'dfdafe3318674ef4614e77913b6e2b85f80433d413f03c082503edb68d77ef2b';
+const POKEMON_API_KEY = process.env.REACT_APP_POKEMON_API_KEY;
+const TCG_API_KEY = process.env.REACT_APP_TCG_API_KEY;
 
 // Configuración de TCGs disponibles
 const TCG_CONFIGS = {

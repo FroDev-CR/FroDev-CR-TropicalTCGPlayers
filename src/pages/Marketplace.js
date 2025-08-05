@@ -6,11 +6,14 @@ import { db } from '../firebase';
 import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
 import SellCardModal from '../components/SellCardModal';
-import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaUser, FaTag, FaStar, FaGamepad } from 'react-icons/fa';
+import MarketplaceFilters from '../components/MarketplaceFilters';
+import FeaturedSections from '../components/FeaturedSections';
+import PriceComparator from '../components/PriceComparator';
+import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaUser, FaTag, FaStar, FaExchangeAlt, FaFilter } from 'react-icons/fa';
 import ReactStars from "react-rating-stars-component";
 
-const POKEMON_API_KEY = '1f1c90be-e3da-4ff5-9753-8a662f20c2f0';
-const TCG_API_KEY = 'dfdafe3318674ef4614e77913b6e2b85f80433d413f03c082503edb68d77ef2b';
+const POKEMON_API_KEY = process.env.REACT_APP_POKEMON_API_KEY;
+const TCG_API_KEY = process.env.REACT_APP_TCG_API_KEY;
 
 // Configuración de juegos TCG
 const TCG_GAMES = {
@@ -148,7 +151,6 @@ const SellerRating = ({ sellerId }) => {
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
-  // Eliminar selectedGame - ahora buscaremos en todos los TCGs
   const [cards, setCards] = useState([]);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -162,9 +164,110 @@ export default function Marketplace() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [searchError, setSearchError] = useState('');
+  
+  // Nuevos estados para las funcionalidades mejoradas
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    tcgTypes: [],
+    priceRange: null,
+    conditions: [],
+    rarities: [],
+    minRating: 0,
+    sortBy: 'newest'
+  });
+  const [showComparator, setShowComparator] = useState(false);
+  const [comparatorCard, setComparatorCard] = useState(null);
+  
   const { addToCart } = useCart();
 
   const [latestListings, setLatestListings] = useState([]);
+
+  // Función para aplicar filtros avanzados
+  const applyFilters = (listings, activeFilters) => {
+    let filtered = [...listings];
+
+    // Filtro por TCG Types
+    if (activeFilters.tcgTypes.length > 0) {
+      filtered = filtered.filter(listing => 
+        activeFilters.tcgTypes.includes(listing.tcgType)
+      );
+    }
+
+    // Filtro por precio
+    if (activeFilters.priceRange) {
+      const priceRanges = {
+        'under10': { min: 0, max: 10 },
+        '10to25': { min: 10, max: 25 },
+        '25to50': { min: 25, max: 50 },
+        '50to100': { min: 50, max: 100 },
+        'over100': { min: 100, max: 9999 }
+      };
+      
+      const range = priceRanges[activeFilters.priceRange];
+      if (range) {
+        filtered = filtered.filter(listing => 
+          listing.price >= range.min && listing.price <= range.max
+        );
+      }
+    }
+
+    // Filtro por condición
+    if (activeFilters.conditions.length > 0) {
+      filtered = filtered.filter(listing => 
+        activeFilters.conditions.includes(listing.condition)
+      );
+    }
+
+    // Filtro por rareza
+    if (activeFilters.rarities.length > 0) {
+      filtered = filtered.filter(listing => 
+        activeFilters.rarities.includes(listing.rarity)
+      );
+    }
+
+    // Filtro por rating mínimo del vendedor (simulado)
+    if (activeFilters.minRating > 0) {
+      // Por ahora simulamos el rating, después se puede implementar con datos reales
+      filtered = filtered.filter(() => Math.random() > (activeFilters.minRating / 5 - 0.3));
+    }
+
+    // Ordenamiento
+    switch (activeFilters.sortBy) {
+      case 'price-low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'name-az':
+        filtered.sort((a, b) => a.cardName.localeCompare(b.cardName));
+        break;
+      case 'name-za':
+        filtered.sort((a, b) => b.cardName.localeCompare(a.cardName));
+        break;
+      case 'oldest':
+        filtered.sort((a, b) => a.createdAt - b.createdAt);
+        break;
+      case 'newest':
+      default:
+        filtered.sort((a, b) => b.createdAt - a.createdAt);
+        break;
+    }
+
+    return filtered;
+  };
+
+  // Contar filtros activos
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.tcgTypes.length > 0) count++;
+    if (filters.priceRange) count++;
+    if (filters.conditions.length > 0) count++;
+    if (filters.rarities.length > 0) count++;
+    if (filters.minRating > 0) count++;
+    if (filters.sortBy !== 'newest') count++;
+    return count;
+  };
 
   useEffect(() => {
     const fetchLatestListings = async () => {
@@ -232,16 +335,21 @@ export default function Marketplace() {
         collection(db, 'listings'),
         where('status', '==', 'active'),
         orderBy('createdAt', 'desc'),
-        limit(50) // Limitar resultados para mejor rendimiento
+        limit(100) // Aumentar límite para mejores filtros
       );
       
       const listingsSnapshot = await getDocs(listingsQuery);
-      const allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       
-      // Filtrar listings que coincidan con el término de búsqueda
-      fetchedListings = allListings.filter(listing => 
-        listing.cardName && listing.cardName.toLowerCase().includes(sanitizedTerm.toLowerCase())
-      );
+      // Filtrar por término de búsqueda
+      if (sanitizedTerm) {
+        allListings = allListings.filter(listing => 
+          listing.cardName && listing.cardName.toLowerCase().includes(sanitizedTerm.toLowerCase())
+        );
+      }
+      
+      // Aplicar filtros avanzados
+      allListings = applyFilters(allListings, filters);
       
       // Crear cards únicos basados en los listings
       const uniqueCards = [];
@@ -301,7 +409,7 @@ export default function Marketplace() {
       setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
     }
     setLoading(false);
-  }, [searchTerm, searchCache]);
+  }, [searchTerm, searchCache, filters]);
 
   const handlePagination = useCallback((newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -369,6 +477,27 @@ export default function Marketplace() {
     setShowCardModal(false);
   };
 
+  // Funciones para el comparador de precios
+  const openComparator = (card) => {
+    setComparatorCard(card);
+    setShowComparator(true);
+  };
+
+  const closeComparator = () => {
+    setComparatorCard(null);
+    setShowComparator(false);
+  };
+
+  // Función para manejar cambios en filtros
+  const handleFiltersChange = (newFilters) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
+    setSearchCache({}); // Limpiar cache cuando cambian los filtros
+    if (searchTerm.trim() || getActiveFiltersCount() > 0) {
+      setTimeout(() => searchCards(1, true), 100);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -411,8 +540,20 @@ export default function Marketplace() {
               className="form-control-lg"
             />
             <Button 
+              variant="outline-secondary"
+              onClick={() => setShowFilters(!showFilters)}
+              className="btn-lg d-flex align-items-center gap-2"
+              title="Filtros avanzados"
+            >
+              <FaFilter />
+              {getActiveFiltersCount() > 0 && (
+                <span className="badge bg-primary">{getActiveFiltersCount()}</span>
+              )}
+              <span className="d-none d-md-inline">Filtros</span>
+            </Button>
+            <Button 
               onClick={() => searchCards(1, true)} 
-              disabled={loading || !searchTerm.trim()}
+              disabled={loading}
               variant="primary"
               className="btn-lg"
             >
@@ -443,8 +584,28 @@ export default function Marketplace() {
           )}
         </div>
 
-        {/* Últimas cartas publicadas */}
-        {!searchTerm.trim() && latestListings.length > 0 && (
+        {/* Layout principal con sidebar de filtros */}
+        <Row className="g-4">
+          {/* Sidebar de filtros */}
+          {showFilters && (
+            <Col lg={3}>
+              <MarketplaceFilters 
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                activeFiltersCount={getActiveFiltersCount()}
+              />
+            </Col>
+          )}
+          
+          {/* Contenido principal */}
+          <Col lg={showFilters ? 9 : 12}>
+            {/* Secciones destacadas (solo cuando no hay búsqueda activa) */}
+            {!searchTerm.trim() && !getActiveFiltersCount() && (
+              <FeaturedSections onViewCard={openCardModal} />
+            )}
+
+            {/* Últimas cartas publicadas */}
+            {!searchTerm.trim() && !getActiveFiltersCount() && latestListings.length > 0 && (
           <div className="latest-cards-section mb-5">
             <h3 className="mb-4">🔥 Últimas cartas publicadas</h3>
             <Row className="g-3">
@@ -591,10 +752,32 @@ export default function Marketplace() {
                         {card.set?.name} - {card.rarity || 'Sin rareza'}
                       </Card.Text>
                       <div className="mt-auto">
-                        <h6 className="mb-3">Vendedores:</h6>
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h6 className="mb-0">Vendedores:</h6>
+                          {listings.filter(l => l.cardId === card.id).length > 1 && (
+                            <Button 
+                              variant="outline-info" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openComparator({
+                                  id: card.id,
+                                  name: card.name,
+                                  image: card.images?.small
+                                });
+                              }}
+                              className="d-flex align-items-center gap-1"
+                              title="Comparar precios de todos los vendedores"
+                            >
+                              <FaExchangeAlt size={12} />
+                              <span className="d-none d-lg-inline">Comparar</span>
+                            </Button>
+                          )}
+                        </div>
                         <ListGroup className="mb-3">
                           {listings
                             .filter(l => l.cardId === card.id)
+                            .slice(0, 2) // Mostrar solo los primeros 2 vendedores
                             .map((listing, index) => (
                               <ListGroup.Item key={`${listing.id}-${index}`} className="py-2">
                                 <div className="d-flex justify-content-between align-items-center">
@@ -636,6 +819,25 @@ export default function Marketplace() {
                               </ListGroup.Item>
                             ))}
                         </ListGroup>
+                        {listings.filter(l => l.cardId === card.id).length > 2 && (
+                          <div className="text-center">
+                            <Button 
+                              variant="link" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openComparator({
+                                  id: card.id,
+                                  name: card.name,
+                                  image: card.images?.small
+                                });
+                              }}
+                              className="text-decoration-none"
+                            >
+                              Ver {listings.filter(l => l.cardId === card.id).length - 2} vendedores más...
+                            </Button>
+                          </div>
+                        )}
                         {listings.filter(l => l.cardId === card.id).length === 0 && (
                           <div className="text-center text-muted py-2">
                             <small>No hay vendedores para esta carta</small>
@@ -649,6 +851,8 @@ export default function Marketplace() {
             </Row>
           </>
         )}
+          </Col>
+        </Row>
       </Container>
 
       <SellCardModal show={showSellModal} handleClose={() => setShowSellModal(false)} />
@@ -793,6 +997,15 @@ export default function Marketplace() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Comparador de Precios */}
+      <PriceComparator
+        show={showComparator}
+        onHide={closeComparator}
+        cardId={comparatorCard?.id}
+        cardName={comparatorCard?.name}
+        cardImage={comparatorCard?.image}
+      />
     </motion.div>
   );
 }

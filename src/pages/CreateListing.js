@@ -6,7 +6,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { useCart } from '../contexts/CartContext';
 import { motion } from 'framer-motion';
 
-const API_KEY = '1f1c90be-e3da-4ff5-9753-8a662f20c2f0';
+const API_KEY = process.env.REACT_APP_POKEMON_API_KEY;
 
 export default function CreateListing() {
   const [searchTerm, setSearchTerm] = useState('');

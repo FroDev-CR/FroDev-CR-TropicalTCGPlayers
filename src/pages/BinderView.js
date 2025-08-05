@@ -10,7 +10,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { FaArrowLeft, FaArrowRight, FaTrashAlt } from 'react-icons/fa';
 
 
-const API_KEY = '1f1c90be-e3da-4ff5-9753-8a662f20c2f0';
+const API_KEY = process.env.REACT_APP_POKEMON_API_KEY;
 
 export default function BinderView() {
   const { id } = useParams();

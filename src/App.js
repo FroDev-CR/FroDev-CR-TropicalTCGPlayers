@@ -14,6 +14,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Toaster } from 'react-hot-toast';
 import BinderView from './pages/BinderView';
 import Binders from './pages/Binders';
+import Dashboard from './pages/Dashboard';
 import { CartProvider } from './contexts/CartContext';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/binders" element={<Binders />} />
           <Route path="/binder/:id" element={<BinderView />} />
           <Route path="/carrito" element={<Cart />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
         <Toaster position="top-right" />
         <Footer />

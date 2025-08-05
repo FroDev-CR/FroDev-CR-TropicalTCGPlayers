@@ -5,7 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import AuthModal from './AuthModal';
-import { FaUser, FaShoppingCart, FaBook, FaHome, FaSignOutAlt } from 'react-icons/fa';
+import { FaUser, FaShoppingCart, FaBook, FaHome, FaSignOutAlt, FaChartLine } from 'react-icons/fa';
 
 const CustomNavbar = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -90,6 +90,15 @@ const CustomNavbar = () => {
                   >
                     <FaUser className="d-lg-none me-2" />
                     Mi Perfil
+                  </Nav.Link>
+                  
+                  <Nav.Link 
+                    as={Link} 
+                    to="/dashboard" 
+                    className={`mx-2 mx-lg-3 nav-hover ${isActive('/dashboard') ? 'active' : ''}`}
+                  >
+                    <FaChartLine className="d-lg-none me-2" />
+                    Dashboard
                   </Nav.Link>
                   
                 </>

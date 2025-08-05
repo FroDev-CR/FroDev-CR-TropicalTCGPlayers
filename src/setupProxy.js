@@ -15,7 +15,7 @@ module.exports = function(app) {
       },
       onProxyReq: (proxyReq, req, res) => {
         console.log('📡 Proxy request:', req.url);
-        proxyReq.setHeader('x-api-key', 'dfdafe3318674ef4614e77913b6e2b85f80433d413f03c082503edb68d77ef2b');
+        proxyReq.setHeader('x-api-key', process.env.REACT_APP_TCG_API_KEY);
         proxyReq.setHeader('Accept', 'application/json');
         proxyReq.setHeader('Content-Type', 'application/json');
       },
