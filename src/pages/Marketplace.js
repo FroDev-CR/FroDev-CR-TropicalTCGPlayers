@@ -12,87 +12,16 @@ import PriceComparator from '../components/PriceComparator';
 import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaUser, FaTag, FaStar, FaExchangeAlt, FaFilter } from 'react-icons/fa';
 import ReactStars from "react-rating-stars-component";
 
-const POKEMON_API_KEY = process.env.REACT_APP_POKEMON_API_KEY;
-const TCG_API_KEY = process.env.REACT_APP_TCG_API_KEY;
-
-// Configuración de juegos TCG - SEPARADAS CORRECTAMENTE
+// Configuración simple para mapear tipos de TCG
 const TCG_GAMES = {
-  // API OFICIAL DE POKÉMON (api.pokemontcg.io) - La más completa para Pokémon
-  pokemon: {
-    name: 'Pokémon TCG',
-    apiUrl: 'https://api.pokemontcg.io/v2/cards',
-    apiKey: POKEMON_API_KEY,
-    searchParam: 'q', // Usa parámetro 'q' con sintaxis especial
-    icon: '🔥',
-    available: !!POKEMON_API_KEY, // Solo disponible si hay API key
-    apiType: 'pokemon'
-  },
-  
-  // TCGS API (apitcg.com) - Todos los TCGs disponibles
-  onepiece: {
-    name: 'One Piece',
-    apiUrl: 'https://apitcg.com/api/one-piece/cards',
-    apiKey: TCG_API_KEY,
-    searchParam: 'name',
-    icon: '🏴‍☠️',
-    available: !!TCG_API_KEY,
-    apiType: 'tcgapi'
-  },
-  dragonball: {
-    name: 'Dragon Ball',
-    apiUrl: 'https://apitcg.com/api/dragon-ball-fusion/cards',
-    apiKey: TCG_API_KEY,
-    searchParam: 'name',
-    icon: '🐉',
-    available: !!TCG_API_KEY,
-    apiType: 'tcgapi'
-  },
-  digimon: {
-    name: 'Digimon',
-    apiUrl: 'https://apitcg.com/api/digimon/cards',
-    apiKey: TCG_API_KEY,
-    searchParam: 'name',
-    icon: '🦖',
-    available: !!TCG_API_KEY,
-    apiType: 'tcgapi'
-  },
-  magic: {
-    name: 'Magic: The Gathering',
-    apiUrl: 'https://apitcg.com/api/magic/cards',
-    apiKey: TCG_API_KEY,
-    searchParam: 'name',
-    icon: '🪄',
-    available: !!TCG_API_KEY,
-    apiType: 'tcgapi'
-  },
-  unionarena: {
-    name: 'Union Arena',
-    apiUrl: 'https://apitcg.com/api/union-arena/cards',
-    apiKey: TCG_API_KEY,
-    searchParam: 'name',
-    icon: '⚔️',
-    available: !!TCG_API_KEY,
-    apiType: 'tcgapi'
-  },
-  gundam: {
-    name: 'Gundam',
-    apiUrl: 'https://apitcg.com/api/gundam/cards',
-    apiKey: TCG_API_KEY,
-    searchParam: 'name',
-    icon: '🤖',
-    available: !!TCG_API_KEY,
-    apiType: 'tcgapi'
-  },
-  // Pokémon también está disponible en TCGS API (alternativa)
-  pokemonTcgs: {
-    name: 'Pokémon (TCGS)',
-    apiUrl: 'https://apitcg.com/api/pokemon/cards',
-    apiKey: TCG_API_KEY,
-    searchParam: 'name',
-    icon: '🔥',
-    available: !!TCG_API_KEY,
-    apiType: 'tcgapi'
-  }
+  pokemon: { name: 'Pokémon TCG', icon: '🔥' },
+  onepiece: { name: 'One Piece', icon: '🏴‍☠️' },
+  dragonball: { name: 'Dragon Ball', icon: '🐉' },
+  digimon: { name: 'Digimon', icon: '🦖' },
+  magic: { name: 'Magic: The Gathering', icon: '🪄' },
+  unionarena: { name: 'Union Arena', icon: '⚔️' },
+  gundam: { name: 'Gundam', icon: '🤖' },
+  unknown: { name: 'Desconocido', icon: '❓' }
 };
 
 const rateUser = async (userId, newRating) => {
@@ -191,17 +120,6 @@ export default function Marketplace() {
   const [showComparator, setShowComparator] = useState(false);
   const [comparatorCard, setComparatorCard] = useState(null);
   
-  // Estado para controlar qué APIs usar
-  const [enabledAPIs, setEnabledAPIs] = useState({
-    pokemon: true,           // Pokémon API oficial
-    onepiece: true,         // TCGS API - One Piece
-    dragonball: true,       // TCGS API - Dragon Ball
-    digimon: true,          // TCGS API - Digimon  
-    magic: true,            // TCGS API - Magic (ahora con URL correcta)
-    unionarena: true,       // TCGS API - Union Arena
-    gundam: true,           // TCGS API - Gundam
-    pokemonTcgs: false      // Pokémon alternativo (TCGS API) - deshabilitado para evitar duplicados
-  });
   
   const { addToCart } = useCart();
 
@@ -331,231 +249,35 @@ export default function Marketplace() {
     }
   }, [searchTerm]);
 
-  // Función unificada para buscar en ambas APIs
-  const searchCardsInAPIs = async (searchTerm, page = 1) => {
+  // Función simplificada - solo buscar en Firestore listings (rápido)
+  const searchCardsSimple = async (searchTerm, page = 1) => {
     const sanitizedTerm = searchTerm
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9\s\-']/g, '')
       .replace(/\s+/g, ' ');
     
-    console.log(`🔍 Iniciando búsqueda: "${sanitizedTerm}" (página ${page})`);
-    console.log(`🔑 APIs disponibles:`, {
-      pokemon: !!POKEMON_API_KEY,
-      tcgGeneral: !!TCG_API_KEY
-    });
+    console.log(`🔍 Búsqueda rápida en listings: "${sanitizedTerm}"`);
     
-    const allCards = [];
-    const errors = [];
-
-    // Verificar que tenemos las API keys
-    if (!POKEMON_API_KEY && !TCG_API_KEY) {
-      errors.push('⚠️ No se encontraron claves de API configuradas en las variables de entorno');
-      return { cards: [], errors };
-    }
-
-    // Verificar que al menos una API está habilitada
-    const hasEnabledAPI = Object.values(enabledAPIs).some(enabled => enabled);
-    if (!hasEnabledAPI) {
-      errors.push('⚠️ Todas las APIs están deshabilitadas. Habilita al menos una en los filtros de arriba.');
-      return { cards: [], errors };
-    }
-
-    // Buscar en todas las APIs configuradas
-    for (const [gameKey, gameConfig] of Object.entries(TCG_GAMES)) {
-      if (!gameConfig.available) continue;
-      
-      // Skip si no tenemos la API key necesaria
-      if (gameConfig.apiType === 'pokemon' && !POKEMON_API_KEY) continue;
-      if (gameConfig.apiType === 'tcgapi' && !TCG_API_KEY) continue;
-      
-      // Skip si la API está deshabilitada por el usuario
-      if (!enabledAPIs[gameKey]) {
-        console.log(`⏭️ Saltando ${gameConfig.name} - deshabilitada por el usuario`);
-        continue;
-      }
-      
-      console.log(`🔎 Buscando en ${gameConfig.name}...`);
-      
-      try {
-        let response;
-        let data;
-        
-        if (gameConfig.apiType === 'pokemon') {
-          // Pokemon TCG API OFICIAL - Sintaxis especial según documentación
-          let queryTerm;
-          
-          // Si contiene espacios, usar búsqueda exacta con comillas
-          if (sanitizedTerm.includes(' ')) {
-            queryTerm = `name:"${sanitizedTerm}"`;
-          } else {
-            // Para términos simples, usar wildcard para encontrar más resultados
-            queryTerm = `name:${sanitizedTerm}*`;
-          }
-          
-          const url = `${gameConfig.apiUrl}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=15`;
-          
-          // Crear controlador de abort y timeout más robusto
-          const controller = new AbortController();
-          let timeoutId;
-          
-          const timeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => {
-              controller.abort();
-              reject(new Error('Pokemon API: Timeout después de 10 segundos'));
-            }, 10000);
-          });
-          
-          const fetchPromise = fetch(url, { 
-            headers: {
-              'X-Api-Key': gameConfig.apiKey,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            signal: controller.signal
-          });
-          
-          response = await Promise.race([fetchPromise, timeoutPromise]);
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            throw new Error(`Pokemon API: HTTP ${response.status}`);
-          }
-          
-          data = await response.json();
-          
-          // Verificar que la respuesta tenga el formato esperado
-          if (!data.data) {
-            throw new Error('Pokemon API: Invalid response format');
-          }
-          
-          // Adaptar formato Pokemon TCG
-          const adaptedCards = data.data?.map(card => ({
-            id: card.id,
-            name: card.name,
-            images: { 
-              small: card.images?.small || 'https://via.placeholder.com/200',
-              large: card.images?.large || card.images?.small || 'https://via.placeholder.com/400'
-            },
-            set: { name: card.set?.name || 'Desconocido' },
-            rarity: card.rarity || 'Common',
-            tcgType: gameKey,
-            tcgName: gameConfig.name,
-            // Pokemon specific fields
-            supertype: card.supertype,
-            subtypes: card.subtypes,
-            hp: card.hp,
-            types: card.types,
-            abilities: card.abilities,
-            attacks: card.attacks,
-            weaknesses: card.weaknesses,
-            resistances: card.resistances,
-            retreatCost: card.retreatCost,
-            artist: card.artist,
-            flavorText: card.flavorText,
-            nationalPokedexNumbers: card.nationalPokedexNumbers
-          })) || [];
-          
-          allCards.push(...adaptedCards);
-          
-        } else if (gameConfig.apiType === 'tcgapi') {
-          // TCGS API para otros juegos 
-          const isProduction = process.env.NODE_ENV === 'production';
-          const apiUrl = isProduction 
-            ? gameConfig.apiUrl 
-            : gameConfig.apiUrl.replace('https://apitcg.com/api', '/api/tcg');
-          
-          // Construir URL con parámetros según documentación de TCGS API
-          const searchUrl = `${apiUrl}?name=${encodeURIComponent(sanitizedTerm)}&limit=15&page=${page}`;
-          
-          // Crear controlador de abort y timeout más robusto
-          const controller = new AbortController();
-          let timeoutId;
-          
-          const timeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => {
-              controller.abort();
-              reject(new Error(`${gameConfig.name}: Timeout después de 8 segundos`));
-            }, 8000);
-          });
-          
-          const fetchPromise = fetch(searchUrl, { 
-            method: 'GET',
-            headers: isProduction ? {
-              'x-api-key': gameConfig.apiKey,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            } : {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            mode: 'cors',
-            signal: controller.signal
-          });
-          
-          response = await Promise.race([fetchPromise, timeoutPromise]);
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            throw new Error(`${gameConfig.name} API: HTTP ${response.status}`);
-          }
-          
-          data = await response.json();
-          console.log(`📊 ${gameConfig.name} raw response:`, data);
-          
-          // Verificar que la respuesta tenga el formato esperado
-          if (!data.data || !Array.isArray(data.data)) {
-            console.warn(`⚠️ ${gameConfig.name}: Formato de respuesta inesperado`, data);
-            throw new Error(`${gameConfig.name} API: Invalid response format - expected data array`);
-          }
-          
-          // Adaptar formato TCGS API
-          const adaptedCards = data.data?.map(card => ({
-            id: card.id || card.code,
-            name: card.name,
-            images: { 
-              small: card.images?.small || card.images?.large || 'https://via.placeholder.com/200',
-              large: card.images?.large || card.images?.small || 'https://via.placeholder.com/400'
-            },
-            set: { name: card.set?.name || 'Desconocido' },
-            rarity: card.rarity || 'Common',
-            tcgType: gameKey,
-            tcgName: gameConfig.name,
-            // TCGS specific fields
-            type: card.type,
-            cost: card.cost,
-            power: card.power,
-            counter: card.counter,
-            color: card.color,
-            attribute: card.attribute?.name || card.attribute,
-            ability: card.ability,
-            family: card.family,
-            features: card.features,
-            trigger: card.trigger
-          })) || [];
-          
-          console.log(`✅ ${gameConfig.name}: ${adaptedCards.length} cartas encontradas`);
-          allCards.push(...adaptedCards);
-        }
-        
-      } catch (error) {
-        console.warn(`❌ Error searching ${gameConfig.name}:`, error);
-        
-        if (error.name === 'AbortError') {
-          errors.push(`${gameConfig.name}: Timeout - API muy lenta`);
-        } else if (error.message.includes('HTTP 401')) {
-          errors.push(`${gameConfig.name}: API Key inválida`);
-        } else if (error.message.includes('HTTP 429')) {
-          errors.push(`${gameConfig.name}: Límite de requests excedido`);
-        } else if (error.message.includes('HTTP 404')) {
-          errors.push(`${gameConfig.name}: No se encontraron resultados`);
-        } else {
-          errors.push(`${gameConfig.name}: ${error.message}`);
-        }
-      }
+    // Solo buscar en listings existentes (súper rápido)
+    const listingsQuery = query(
+      collection(db, 'listings'),
+      where('status', '==', 'active'),
+      orderBy('createdAt', 'desc'),
+      limit(100)
+    );
+    
+    const listingsSnapshot = await getDocs(listingsQuery);
+    let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    // Filtrar por término de búsqueda
+    if (sanitizedTerm) {
+      allListings = allListings.filter(listing => 
+        listing.cardName && listing.cardName.toLowerCase().includes(sanitizedTerm.toLowerCase())
+      );
     }
     
-    return { cards: allCards, errors };
+    return { listings: allListings, errors: [] };
   };
 
   const searchCards = useCallback(async (page = 1, skipCache = false) => {
@@ -758,43 +480,12 @@ export default function Marketplace() {
     setSearchError('');
     
     try {
-      // 1. Buscar cartas en las APIs externas
-      const { cards: apiCards, errors: apiErrors } = await searchCardsInAPIs(term, page);
+      // Búsqueda súper rápida solo en listings existentes
+      const { listings: allListings, errors } = await searchCardsSimple(term, page);
       
-      // 2. Buscar listings existentes en Firestore
-      const listingsQuery = query(
-        collection(db, 'listings'),
-        where('status', '==', 'active'),
-        orderBy('createdAt', 'desc'),
-        limit(200)
-      );
-      
-      const listingsSnapshot = await getDocs(listingsQuery);
-      let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      // Filtrar listings por término de búsqueda
-      allListings = allListings.filter(listing => 
-        listing.cardName && listing.cardName.toLowerCase().includes(term.toLowerCase())
-      );
-      
-      // 3. Combinar cartas de API con listings
+      // Crear cards únicos basados en los listings
       const cardMap = new Map();
       
-      // Agregar cartas de APIs
-      apiCards.forEach(card => {
-        if (!cardMap.has(card.id)) {
-          cardMap.set(card.id, {
-            ...card,
-            sellers: [],
-            averagePrice: 0,
-            minPrice: 0,
-            maxPrice: 0,
-            totalStock: 0
-          });
-        }
-      });
-      
-      // Agregar listings como vendedores
       allListings.forEach(listing => {
         const cardId = listing.cardId;
         
@@ -828,7 +519,7 @@ export default function Marketplace() {
         });
       });
       
-      // 4. Calcular precios ponderados
+      // Calcular precios ponderados
       cardMap.forEach((card) => {
         if (card.sellers.length > 0) {
           const prices = card.sellers.map(s => s.price);
@@ -847,11 +538,11 @@ export default function Marketplace() {
         }
       });
       
-      // 5. Convertir a array y aplicar filtros
+      // Convertir a array y aplicar filtros
       let finalCards = Array.from(cardMap.values());
       finalCards = applyFilters(finalCards, filters);
       
-      // 6. Paginación
+      // Paginación
       const itemsPerPage = 12;
       const totalCount = finalCards.length;
       const calculatedPages = Math.ceil(totalCount / itemsPerPage);
@@ -865,11 +556,10 @@ export default function Marketplace() {
       setCurrentPage(page);
 
       if (paginatedCards.length === 0) {
-        const errorMsg = apiErrors.length > 0 
-          ? `No se encontraron cartas. Errores de API: ${apiErrors.join(', ')}`
-          : 'No se encontraron cartas que coincidan con tu búsqueda.';
-        setSearchError(errorMsg);
+        setSearchError('No se encontraron cartas en venta que coincidan con tu búsqueda.');
       }
+
+      console.log(`✅ Búsqueda completada: ${finalCards.length} cartas encontradas`);
 
     } catch (error) {
       console.error('Error searching cards:', error);
@@ -880,7 +570,7 @@ export default function Marketplace() {
       setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
     }
     setLoading(false);
-  }, [filters, enabledAPIs]);
+  }, [filters]);
 
   // Paginación
   const handlePagination = useCallback((newPage) => {
@@ -910,7 +600,7 @@ export default function Marketplace() {
     
     const timer = setTimeout(() => {
       performSearch(value, 1);
-    }, 1000);
+    }, 300); // Búsqueda rápida - solo 300ms
     
     setDebounceTimer(timer);
   };
@@ -1041,30 +731,6 @@ export default function Marketplace() {
             </Button>
           </div>
           
-          {/* Filtro de APIs */}
-          <div className="mb-3">
-            <div className="d-flex flex-wrap gap-2 align-items-center">
-              <small className="text-muted me-2">🎮 APIs habilitadas:</small>
-              {Object.entries(TCG_GAMES).map(([key, config]) => (
-                <div key={key} className="form-check form-check-inline">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id={`api-${key}`}
-                    checked={enabledAPIs[key]}
-                    onChange={(e) => setEnabledAPIs(prev => ({
-                      ...prev,
-                      [key]: e.target.checked
-                    }))}
-                  />
-                  <label className="form-check-label" htmlFor={`api-${key}`}>
-                    <span className="badge bg-secondary me-1">{config.icon}</span>
-                    {config.name}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Mostrar errores de búsqueda */}
           {searchError && (
