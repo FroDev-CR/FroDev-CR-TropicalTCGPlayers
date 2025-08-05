@@ -1,6 +1,8 @@
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 import { motion } from 'framer-motion';
-import EventCalendar from '../components/EventCalendar';
+import CarouselHero from '../components/CarouselHero';
+import LatestCards from '../components/LatestCards';
+import UpcomingEvents from '../components/UpcomingEvents';
 
 export default function Home() {
   return (
@@ -9,28 +11,27 @@ export default function Home() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <section className="section bg-light">
+      <section className="section bg-light" style={{ padding: 0 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <CarouselHero />
+        </motion.div>
+      </section>
+
+      {/* Sección de últimas cartas */}
+      <section className="section">
         <Container>
-          <h2 className="section-title">Quiénes Somos</h2>
-          <Row className="justify-content-center">
-            <Col lg={8} className="text-center">
-              <motion.p
-                className="lead mb-5"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                DIGALES.
-              </motion.p>
-            </Col>
-          </Row>
+          <LatestCards />
         </Container>
       </section>
 
-      <section className="section">
+      {/* Sección de próximos eventos */}
+      <section className="section bg-light">
         <Container>
-          <h2 className="section-title">Calendario de Eventos</h2>
-          <EventCalendar />
+          <UpcomingEvents />
         </Container>
       </section>
 

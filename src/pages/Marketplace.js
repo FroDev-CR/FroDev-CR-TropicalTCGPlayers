@@ -608,44 +608,46 @@ export default function Marketplace() {
             {!searchTerm.trim() && !getActiveFiltersCount() && latestListings.length > 0 && (
           <div className="latest-cards-section mb-5">
             <h3 className="mb-4">🔥 Últimas cartas publicadas</h3>
-            <Row className="g-3">
-              {latestListings.map(listing => (
-                <Col key={listing.id} xs={6} sm={4} md={3} lg={2}>
-                  <Card 
-                    className="h-100 latest-card-hover"
-                    onClick={() => {
-                      // Create a simplified card object for the modal
-                      const cardData = {
-                        id: listing.cardId || listing.id,
-                        name: listing.cardName,
-                        images: { small: listing.cardImage, large: listing.cardImage },
-                        set: { name: listing.setName || 'Desconocido' },
-                        rarity: listing.rarity || 'Sin rareza'
-                      };
-                      openCardModal(cardData);
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <Card.Img 
-                      variant="top" 
-                      src={listing.cardImage || 'https://via.placeholder.com/200'} 
-                      className="card-img-top"
-                      style={{ height: '140px', objectFit: 'contain', padding: '0.5rem' }}
-                    />
-                    <Card.Body className="p-2">
-                      <Card.Title className="fs-6 mb-1 text-truncate">{listing.cardName}</Card.Title>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="badge bg-success">${listing.price}</span>
-                        <small className="text-muted">{listing.condition}</small>
-                      </div>
-                      <div className="mt-2">
-                        <small className="text-muted d-block text-truncate">Por: {listing.sellerName || "Anónimo"}</small>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+            <div className="latest-cards-horizontal">
+              <div className="latest-cards-container">
+                {latestListings.map(listing => (
+                  <div key={listing.id} className="latest-card-item">
+                    <Card 
+                      className="h-100 latest-card-hover"
+                      onClick={() => {
+                        // Create a simplified card object for the modal
+                        const cardData = {
+                          id: listing.cardId || listing.id,
+                          name: listing.cardName,
+                          images: { small: listing.cardImage, large: listing.cardImage },
+                          set: { name: listing.setName || 'Desconocido' },
+                          rarity: listing.rarity || 'Sin rareza'
+                        };
+                        openCardModal(cardData);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <Card.Img 
+                        variant="top" 
+                        src={listing.cardImage || 'https://via.placeholder.com/200'} 
+                        className="card-img-top"
+                        style={{ height: '140px', objectFit: 'contain', padding: '0.5rem' }}
+                      />
+                      <Card.Body className="p-2">
+                        <Card.Title className="fs-6 mb-1 text-truncate">{listing.cardName}</Card.Title>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="badge bg-success">${listing.price}</span>
+                          <small className="text-muted">{listing.condition}</small>
+                        </div>
+                        <div className="mt-2">
+                          <small className="text-muted d-block text-truncate">Por: {listing.sellerName || "Anónimo"}</small>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

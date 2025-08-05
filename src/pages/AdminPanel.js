@@ -12,6 +12,7 @@ const AdminPanel = () => {
   const [events, setEvents] = useState([]);
   const [products, setProducts] = useState([]);
   const [streams, setStreams] = useState([]); // Nuevo estado para streams
+  const [carousel, setCarousel] = useState([]); // Nuevo estado para carrusel
   const [formData, setFormData] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -20,6 +21,17 @@ const AdminPanel = () => {
 
   // Configuración inicial
   const collections = {
+    carousel: {
+      fields: ['title', 'subtitle', 'imageUrl', 'order', 'active'],
+      labels: {
+        title: 'Título',
+        subtitle: 'Subtítulo',
+        imageUrl: 'URL de la Imagen*',
+        order: 'Orden de Aparición*',
+        active: 'Activa'
+      },
+      required: ['imageUrl', 'order']
+    },
     streams: {
       fields: ['title', 'youtubeUrl', 'scheduledTime', 'description', 'isLive'],
       labels: {
@@ -94,6 +106,18 @@ const AdminPanel = () => {
             scheduledTime: d.data().scheduledTime?.toDate() || new Date(),
             description: d.data().description || '',
             isLive: d.data().isLive || false
+          })));
+
+          // Cargar carrusel
+          const carouselCol = collection(db, 'carousel');
+          const carouselSnapshot = await getDocs(carouselCol);
+          setCarousel(carouselSnapshot.docs.map(d => ({
+            id: d.id,
+            title: d.data().title || 'Sin título',
+            subtitle: d.data().subtitle || '',
+            imageUrl: d.data().imageUrl || '',
+            order: d.data().order || 0,
+            active: d.data().active || false
           })));
         } catch (error) {
           setError('Error cargando datos');
@@ -178,6 +202,8 @@ const AdminPanel = () => {
           setProducts(products.filter(p => p.id !== id));
         } else if (type === 'streams') {
           setStreams(streams.filter(s => s.id !== id));
+        } else if (type === 'carousel') {
+          setCarousel(carousel.filter(c => c.id !== id));
         }
       } catch (error) {
         setError('Error eliminando el elemento');
@@ -243,6 +269,63 @@ const AdminPanel = () => {
       {success && <Alert variant="success">{success}</Alert>}
 
       <Tabs activeKey={activeTab} onSelect={setActiveTab} className="mb-4">
+        <Tab eventKey="carousel" title="Carrusel">
+          <Button 
+            variant="success" 
+            className="my-4"
+            onClick={() => {
+              setCurrentItem(null);
+              setShowModal(true);
+            }}
+          >
+            Crear Nueva Imagen
+          </Button>
+
+          <Row xs={1} md={2} lg={3} className="g-4">
+            {carousel.sort((a, b) => a.order - b.order).map(item => (
+              <Col key={item.id}>
+                <div className="card h-100 shadow-sm">
+                  <img 
+                    src={item.imageUrl || 'https://via.placeholder.com/200x200'} 
+                    alt={item.title}
+                    className="card-img-top"
+                    style={{ height: '200px', objectFit: 'cover' }}
+                  />
+                  <div className="card-body">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <h5 className="card-title">{item.title}</h5>
+                      <div className="d-flex align-items-center gap-2">
+                        <span className={`badge ${item.active ? 'bg-success' : 'bg-secondary'}`}>
+                          {item.active ? 'Activa' : 'Inactiva'}
+                        </span>
+                        <span className="badge bg-primary">#{item.order}</span>
+                      </div>
+                    </div>
+                    <p className="card-text text-muted small">
+                      {item.subtitle || 'Sin subtítulo'}
+                    </p>
+                    <div className="d-flex gap-2">
+                      <Button 
+                        variant="outline-primary" 
+                        size="sm"
+                        onClick={() => handleEdit(item, 'carousel')}
+                      >
+                        Editar
+                      </Button>
+                      <Button 
+                        variant="outline-danger" 
+                        size="sm"
+                        onClick={() => handleDelete(item.id, 'carousel')}
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+            ))}
+          </Row>
+        </Tab>
         <Tab eventKey="events" title="Eventos">
           <Button 
             variant="success" 
@@ -390,7 +473,12 @@ const AdminPanel = () => {
       <Modal show={showModal} onHide={resetForm} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
-            {currentItem ? 'Editar' : 'Crear Nuevo'} {activeTab === 'events' ? 'Evento' : activeTab === 'products' ? 'Producto' : 'Stream'}
+            {currentItem ? 'Editar' : 'Crear Nuevo'} {
+              activeTab === 'events' ? 'Evento' : 
+              activeTab === 'products' ? 'Producto' : 
+              activeTab === 'streams' ? 'Stream' :
+              activeTab === 'carousel' ? 'Imagen del Carrusel' : 'Elemento'
+            }
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -410,22 +498,25 @@ const AdminPanel = () => {
                     dateFormat="Pp"
                     className="form-control"
                   />
-                ) : field === 'isLive' ? (
+                ) : field === 'isLive' || field === 'active' ? (
                   <Form.Check
                     type="switch"
-                    label="En Vivo"
+                    label={field === 'isLive' ? 'En Vivo' : 'Activa'}
                     checked={formData[field] || false}
                     onChange={(e) => setFormData({...formData, [field]: e.target.checked})}
                   />
                 ) : (
                   <Form.Control
-                    type={field === 'price' ? 'number' : 'text'}
+                    type={field === 'price' || field === 'order' ? 'number' : 'text'}
                     value={formData[field] || ''}
                     onChange={(e) => 
                       setFormData({...formData, [field]: e.target.value})
                     }
                     required={collections[activeTab].required.includes(field)}
-                    placeholder={field === 'image' ? 'https://ejemplo.com/imagen.jpg' : ''}
+                    placeholder={
+                      field === 'image' || field === 'imageUrl' ? 'https://ejemplo.com/imagen.jpg' : 
+                      field === 'order' ? '1, 2, 3...' : ''
+                    }
                   />
                 )}
               </Form.Group>

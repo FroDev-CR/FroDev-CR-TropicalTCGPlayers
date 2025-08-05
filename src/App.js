@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import CustomNavbar from './components/Navbar';
 import Home from './pages/Home';
+import Events from './pages/Events';
 import Footer from './components/Footer';
 import AdminPanel from './pages/AdminPanel';
 import Marketplace from './pages/Marketplace';
@@ -24,6 +25,7 @@ function App() {
         <CustomNavbar />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/eventos" element={<Events />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/perfil" element={<Profile />} />

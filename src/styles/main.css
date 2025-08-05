@@ -666,3 +666,78 @@
 .badge.bg-success {
   animation: pulse 2s infinite;
 }
+
+/* Scroll horizontal para últimas cartas */
+.latest-cards-horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: #007bff #f8f9fa;
+}
+
+.latest-cards-horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+
+.latest-cards-horizontal::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 3px;
+}
+
+.latest-cards-horizontal::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 3px;
+}
+
+.latest-cards-horizontal::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
+}
+
+.latest-cards-container {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  min-width: max-content;
+}
+
+.latest-card-item {
+  flex: 0 0 180px;
+  min-width: 180px;
+}
+
+/* Responsivo para móviles */
+@media (max-width: 768px) {
+  .latest-card-item {
+    flex: 0 0 140px;
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 576px) {
+  .latest-card-item {
+    flex: 0 0 120px;
+    min-width: 120px;
+  }
+}
+
+/* Animación de hover para las cartas */
+.latest-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.latest-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para eventos próximos */
+.upcoming-event-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.upcoming-event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15) !important;
+}
