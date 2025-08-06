@@ -108,10 +108,10 @@ const UpcomingEvents = () => {
             Próximos Eventos
           </h3>
         </div>
-        <div className="card border-0 bg-light">
+        <div className="card border-0">
           <div className="card-body py-4">
-            <i className="fas fa-calendar-plus fa-2x text-muted mb-3"></i>
-            <p className="text-muted mb-2">No hay eventos programados</p>
+            <i className="fas fa-calendar-plus fa-2x text-white mb-3"></i>
+            <p className="text-white mb-2">No hay eventos programados</p>
             <Link to="/eventos" className="btn btn-outline-primary btn-sm">
               Ver calendario completo
             </Link>

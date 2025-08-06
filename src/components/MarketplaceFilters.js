@@ -14,11 +14,11 @@ const TCG_TYPES = [
 ];
 
 const PRICE_RANGES = [
-  { key: 'under10', label: 'Menos de $10', min: 0, max: 10 },
-  { key: '10to25', label: '$10 - $25', min: 10, max: 25 },
-  { key: '25to50', label: '$25 - $50', min: 25, max: 50 },
-  { key: '50to100', label: '$50 - $100', min: 50, max: 100 },
-  { key: 'over100', label: 'Más de $100', min: 100, max: 9999 }
+  { key: 'under10', label: 'Menos de ₡10', min: 0, max: 10 },
+  { key: '10to25', label: '₡10 - ₡25', min: 10, max: 25 },
+  { key: '25to50', label: '₡25 - ₡50', min: 25, max: 50 },
+  { key: '50to100', label: '₡50 - ₡100', min: 50, max: 100 },
+  { key: 'over100', label: 'Más de ₡100', min: 100, max: 9999 }
 ];
 
 const CONDITIONS = [

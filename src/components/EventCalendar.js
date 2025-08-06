@@ -57,7 +57,7 @@ export default function EventCalendar() {
   const EventContent = ({ event }) => (
     <div className="p-1 text-center w-100">
       <div className="event-title">{event.title}</div>
-      {event.price > 0 && <div className="event-price">${event.price}</div>}
+      {event.price > 0 && <div className="event-price">₡${event.price}</div>}
     </div>
   );
 
@@ -115,7 +115,7 @@ export default function EventCalendar() {
                   </div>
                   <div className="detail-item">
                     <i className="bi bi-cash me-2"></i>
-                    Valor: ${selectedEvent?.price}
+                    Valor: ₡${selectedEvent?.price}
                   </div>
                 </div>
                 <div className="mt-auto">

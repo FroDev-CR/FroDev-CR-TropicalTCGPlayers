@@ -152,7 +152,7 @@
 .card-img-custom {
   height: 200px;
   object-fit: contain;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: transparent;
   padding: 1rem;
 }
 
@@ -174,9 +174,11 @@
 }
 
 .rbc-calendar {
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .rbc-header {
@@ -223,7 +225,7 @@
 .card-img-custom {
   height: 200px;
   object-fit: contain;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: transparent;
   padding: 1rem;
 }
 
@@ -789,31 +791,286 @@
   backdrop-filter: blur(4px);
 }
 
-/* Ajustes para tarjetas móviles en el scroll horizontal */
-@media (max-width: 768px) {
+/* =======================================================
+   DISEÑO SIMPLIFICADO DE CARTAS - SOLO IMAGEN Y DATOS
+   ======================================================= */
+
+/* Contenedor de carta simplificada */
+.simple-card-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.simple-card-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: transparent;
+}
+
+.simple-card-image-wrapper:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(255, 255, 255, 0.3);
+}
+
+.simple-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0;
+  background: transparent;
+}
+
+.simple-card-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.simple-price-badge {
+  background: rgba(40, 167, 69, 0.95);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  font-family: 'Montserrat Alternates', sans-serif;
+  text-transform: uppercase;
+}
+
+.simple-card-info {
+  text-align: center;
+  width: 100%;
+}
+
+.seller-name {
+  color: white !important;
+  font-weight: 600 !important;
+  font-family: 'Montserrat Alternates', sans-serif !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7) !important;
+  font-size: 0.85rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Ajustes para diferentes tamaños de pantalla */
+@media (min-width: 1200px) {
   .latest-card-item {
-    flex: 0 0 110px;
-    min-width: 110px;
+    flex: 0 0 200px;
+    min-width: 200px;
   }
   
-  .mobile-card-image-container {
-    height: 140px;
+  .simple-card-image-wrapper {
+    height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .latest-card-item {
+    flex: 0 0 150px;
+    min-width: 150px;
+  }
+  
+  .simple-card-image-wrapper {
+    height: 220px;
+  }
+  
+  .simple-price-badge {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+  }
+  
+  .seller-name {
+    font-size: 0.75rem !important;
   }
 }
 
 @media (max-width: 576px) {
   .latest-card-item {
-    flex: 0 0 100px;
-    min-width: 100px;
+    flex: 0 0 130px;
+    min-width: 130px;
   }
   
-  .mobile-card-image-container {
-    height: 130px;
+  .simple-card-image-wrapper {
+    height: 190px;
   }
   
-  .mobile-price-badge {
+  .simple-price-badge {
     font-size: 0.7rem;
-    padding: 3px 6px;
+    padding: 3px 8px;
+  }
+  
+  .seller-name {
+    font-size: 0.7rem !important;
+  }
+}
+
+/* =========================================================
+   DISEÑO SIMPLIFICADO DEL MARKETPLACE - CARTAS DE BÚSQUEDA
+   ========================================================= */
+
+/* Contenedor de carta simplificada del marketplace */
+.simplified-marketplace-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.simplified-card-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 350px;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  background: transparent;
+}
+
+.simplified-card-image-wrapper:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 15px 40px rgba(255, 255, 255, 0.3);
+}
+
+.simplified-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0;
+  background: transparent;
+  transition: transform 0.3s ease;
+}
+
+.simplified-card-image-wrapper:hover .simplified-card-image {
+  transform: scale(1.05);
+}
+
+.simplified-favorite-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+}
+
+.simplified-favorite-btn .btn {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 2px solid rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+.simplified-favorite-btn .btn:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Información de vendedores */
+.simplified-sellers-info {
+  width: 100%;
+  text-align: center;
+}
+
+.simplified-best-price {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.price-badge {
+  background: rgba(40, 167, 69, 0.95);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  font-family: 'Montserrat Alternates', sans-serif;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.seller-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.seller-name {
+  color: white !important;
+  font-weight: 700 !important;
+  font-family: 'Montserrat Alternates', sans-serif !important;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8) !important;
+  font-size: 0.9rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px;
+}
+
+.more-sellers {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 600 !important;
+  font-family: 'Montserrat Alternates', sans-serif !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7) !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase;
+}
+
+/* Responsive para marketplace cards */
+@media (max-width: 768px) {
+  .simplified-card-image-wrapper {
+    height: 280px;
+  }
+  
+  .price-badge {
+    font-size: 1rem;
+    padding: 6px 14px;
+  }
+  
+  .seller-name {
+    font-size: 0.8rem !important;
+  }
+  
+  .more-sellers {
+    font-size: 0.7rem !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .simplified-card-image-wrapper {
+    height: 250px;
+  }
+  
+  .price-badge {
+    font-size: 0.9rem;
+    padding: 5px 12px;
+  }
+  
+  .seller-name {
+    font-size: 0.75rem !important;
+  }
+  
+  .more-sellers {
+    font-size: 0.65rem !important;
   }
 }
 
@@ -832,7 +1089,7 @@
   height: 140px;
   overflow: hidden;
   border-radius: 0.5rem 0.5rem 0 0;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: transparent;
 }
 
 .event-square-image {
@@ -847,7 +1104,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: transparent;
 }
 
 .event-overlay {

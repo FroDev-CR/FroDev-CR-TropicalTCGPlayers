@@ -55,14 +55,14 @@ export default function Cart() {
         // Contactar según el método seleccionado
         Object.values(sellerGroups).forEach((seller, index) => {
           const itemsList = seller.items.map(item => 
-            `• ${item.cardName} - $${item.price} (${item.condition})`
+            `• ${item.cardName} - ₡${item.price} (${item.condition})`
           ).join('\n');
 
           const notesText = buyerNotes ? `\n\nNotas del comprador: ${buyerNotes}` : '';
           
           if (selectedContactMethod === 'whatsapp' && seller.phone) {
             const message = encodeURIComponent(
-              `¡Hola ${seller.sellerName}! Me interesan estas cartas de tu listado:\n\n${itemsList}\n\nTotal: $${seller.items.reduce((sum, item) => sum + item.price, 0)}\n\nID de transacción: ${newTransactionId}${notesText}`
+              `¡Hola ${seller.sellerName}! Me interesan estas cartas de tu listado:\n\n${itemsList}\n\nTotal: ₡${seller.items.reduce((sum, item) => sum + item.price, 0)}\n\nID de transacción: ${newTransactionId}${notesText}`
             );
             
             setTimeout(() => {
@@ -71,7 +71,7 @@ export default function Cart() {
           } else if (selectedContactMethod === 'email' && seller.email) {
             const subject = encodeURIComponent(`Interés en compra - Transacción #${newTransactionId.slice(-6)}`);
             const body = encodeURIComponent(
-              `Hola ${seller.sellerName},\n\nMe interesan estas cartas de tu listado:\n\n${itemsList}\n\nTotal: $${seller.items.reduce((sum, item) => sum + item.price, 0)}\n\nID de transacción: ${newTransactionId}${notesText}\n\nSaludos`
+              `Hola ${seller.sellerName},\n\nMe interesan estas cartas de tu listado:\n\n${itemsList}\n\nTotal: ₡${seller.items.reduce((sum, item) => sum + item.price, 0)}\n\nID de transacción: ${newTransactionId}${notesText}\n\nSaludos`
             );
             
             setTimeout(() => {
@@ -114,7 +114,7 @@ export default function Cart() {
                       <div className="flex-grow-1">
                         <h5>{item.cardName}</h5>
                         <div className="d-flex gap-3">
-                          <span>Precio: ${item.price}</span>
+                          <span>Precio: ₡${item.price}</span>
                           <span>Condición: {item.condition}</span>
                           <span>Cantidad: {item.quantity}</span>
                         </div>
@@ -138,7 +138,7 @@ export default function Cart() {
                   <ListGroup variant="flush">
                     <ListGroup.Item className="d-flex justify-content-between">
                       <span>Total:</span>
-                      <span>${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)}</span>
+                      <span>₡${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)}</span>
                     </ListGroup.Item>
                   </ListGroup>
                   <Button 
@@ -186,7 +186,7 @@ export default function Cart() {
                         />
                         <div className="flex-grow-1">
                           <div className="fw-bold small">{item.cardName}</div>
-                          <div className="text-muted small">${item.price} · {item.condition}</div>
+                          <div className="text-muted small">₡${item.price} · {item.condition}</div>
                         </div>
                       </div>
                     </div>
@@ -200,7 +200,7 @@ export default function Cart() {
                 <hr />
                 <div className="d-flex justify-content-between align-items-center fw-bold">
                   <span>Total:</span>
-                  <span className="text-primary">${cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0).toFixed(2)}</span>
+                  <span className="text-primary">₡${cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>

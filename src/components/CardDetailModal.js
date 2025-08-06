@@ -138,13 +138,13 @@ export default function CardDetailModal({ show, onHide, card }) {
 
   const getWhatsAppLink = (listing) => {
     const phone = listing.whatsapp || listing.phone || '';
-    const message = `Hola! Me interesa tu carta: ${card?.name} - ${listing.condition} por $${listing.price}. ¿Está disponible?`;
+    const message = `Hola! Me interesa tu carta: ${card?.name} - ${listing.condition} por ₡${listing.price}. ¿Está disponible?`;
     return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
   };
 
   const getEmailLink = (listing) => {
     const subject = `Interés en ${card?.name} - ${listing.condition}`;
-    const body = `Hola!\n\nMe interesa tu carta:\n- ${card?.name}\n- Condición: ${listing.condition}\n- Precio: $${listing.price}\n\n¿Está disponible?\n\nGracias!`;
+    const body = `Hola!\n\nMe interesa tu carta:\n- ${card?.name}\n- Condición: ${listing.condition}\n- Precio: ₡${listing.price}\n\n¿Está disponible?\n\nGracias!`;
     return `mailto:${listing.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
@@ -317,19 +317,19 @@ export default function CardDetailModal({ show, onHide, card }) {
                     {prices.low && (
                       <Col>
                         <small className="text-muted">Bajo</small>
-                        <div className="fw-bold text-success">${prices.low}</div>
+                        <div className="fw-bold text-success">₡{prices.low}</div>
                       </Col>
                     )}
                     {prices.market && (
                       <Col>
                         <small className="text-muted">Mercado</small>
-                        <div className="fw-bold text-primary">${prices.market}</div>
+                        <div className="fw-bold text-primary">₡{prices.market}</div>
                       </Col>
                     )}
                     {prices.high && (
                       <Col>
                         <small className="text-muted">Alto</small>
-                        <div className="fw-bold text-danger">${prices.high}</div>
+                        <div className="fw-bold text-danger">₡{prices.high}</div>
                       </Col>
                     )}
                   </Row>
@@ -491,7 +491,7 @@ export default function CardDetailModal({ show, onHide, card }) {
                                   <div className="d-flex gap-3 align-items-center mb-2">
                                     <div>
                                       <small className="text-muted">Precio:</small>
-                                      <div className="h5 mb-0 text-success">${seller.price}</div>
+                                      <div className="h5 mb-0 text-success">₡{seller.price}</div>
                                     </div>
                                     <div>
                                       <small className="text-muted">Condición:</small>

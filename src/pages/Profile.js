@@ -3,9 +3,10 @@ import { Container, Form, Button, Alert, Card, Spinner, Row, Col, Nav, Badge, Mo
 import { db } from '../firebase';
 import { doc, updateDoc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { FaWhatsapp, FaStar, FaEdit, FaSave, FaTimes, FaEye, FaCheckCircle, FaClock, FaShoppingCart, FaStore, FaUser } from 'react-icons/fa';
+import { FaWhatsapp, FaStar, FaEdit, FaSave, FaTimes, FaEye, FaCheckCircle, FaClock, FaShoppingCart, FaStore, FaUser, FaChartLine } from 'react-icons/fa';
 import { useCart } from '../contexts/CartContext';
 import RatingSystem from '../components/RatingSystem';
+import DashboardContent from '../components/DashboardContent';
 
 const provinces = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón'];
 
@@ -55,7 +56,7 @@ const TransactionCard = ({ transaction, type, onRateUser, onUpdateStatus }) => {
             </Col>
             <Col md={2}>
               <div className="text-center">
-                <strong>${transaction.totalAmount.toFixed(2)}</strong>
+                <strong>₡${transaction.totalAmount.toFixed(2)}</strong>
                 <div className="text-muted small">{transaction.items.length} carta{transaction.items.length > 1 ? 's' : ''}</div>
               </div>
             </Col>
@@ -121,7 +122,7 @@ const TransactionCard = ({ transaction, type, onRateUser, onUpdateStatus }) => {
                 transaction.buyerName || 'Desconocido'}
             </Col>
             <Col md={6} className="mt-2">
-              <strong>Total:</strong> ${transaction.totalAmount.toFixed(2)}
+              <strong>Total:</strong> ₡${transaction.totalAmount.toFixed(2)}
             </Col>
           </Row>
 
@@ -143,7 +144,7 @@ const TransactionCard = ({ transaction, type, onRateUser, onUpdateStatus }) => {
                       <Card.Body className="p-2">
                         <Card.Title className="fs-6 mb-1">{item.cardName}</Card.Title>
                         <div className="small text-muted">
-                          <div>${item.price} · {item.condition}</div>
+                          <div>₡${item.price} · {item.condition}</div>
                           <div>Cantidad: {item.quantity}</div>
                         </div>
                       </Card.Body>
@@ -353,6 +354,16 @@ export default function Profile() {
             >
               <FaShoppingCart size={16} />
               Mis Transacciones
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link 
+              active={activeTab === 'dashboard'} 
+              onClick={() => setActiveTab('dashboard')}
+              className="d-flex align-items-center gap-2"
+            >
+              <FaChartLine size={16} />
+              Dashboard
             </Nav.Link>
           </Nav.Item>
         </Nav>
@@ -568,6 +579,11 @@ export default function Profile() {
               );
             })()}
           </div>
+        )}
+
+        {/* Contenido de la pestaña Dashboard */}
+        {activeTab === 'dashboard' && (
+          <DashboardContent user={user} />
         )}
       </Container>
 

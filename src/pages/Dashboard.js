@@ -166,7 +166,7 @@ export default function Dashboard() {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-CR', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'CRC'
     }).format(amount || 0);
   };
 
@@ -290,7 +290,7 @@ export default function Dashboard() {
                         dataKey="revenue" 
                         stroke="#198754" 
                         strokeWidth={2}
-                        name="Ingresos ($)"
+                        name="Ingresos (₡)"
                       />
                     </LineChart>
                   </ResponsiveContainer>

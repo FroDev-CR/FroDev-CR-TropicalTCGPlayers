@@ -11,7 +11,7 @@ export default function Home() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <section className="section bg-light" style={{ padding: 0 }}>
+      <section className="section" style={{ padding: 0 }}>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -29,7 +29,7 @@ export default function Home() {
       </section>
 
       {/* Sección de próximos eventos */}
-      <section className="section bg-light">
+      <section className="section">
         <Container>
           <UpcomingEvents />
         </Container>

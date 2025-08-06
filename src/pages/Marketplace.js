@@ -14,14 +14,14 @@ import apiSearchService from '../services/apiSearchService';
 
 // Configuración simple para mapear tipos de TCG
 const TCG_GAMES = {
-  pokemon: { name: 'Pokémon TCG', icon: '🔥' },
-  onepiece: { name: 'One Piece', icon: '🏴‍☠️' },
-  dragonball: { name: 'Dragon Ball', icon: '🐉' },
-  digimon: { name: 'Digimon', icon: '🦖' },
-  magic: { name: 'Magic: The Gathering', icon: '🪄' },
-  unionarena: { name: 'Union Arena', icon: '⚔️' },
-  gundam: { name: 'Gundam', icon: '🤖' },
-  unknown: { name: 'Desconocido', icon: '❓' }
+  pokemon: { name: 'Pokémon TCG' },
+  onepiece: { name: 'One Piece' },
+  dragonball: { name: 'Dragon Ball' },
+  digimon: { name: 'Digimon' },
+  magic: { name: 'Magic: The Gathering' },
+  unionarena: { name: 'Union Arena' },
+  gundam: { name: 'Gundam' },
+  unknown: { name: 'Desconocido' }
 };
 
 // Utility functions moved to CardDetailModal for better organization
@@ -475,7 +475,7 @@ export default function Marketplace() {
             {selectedTCG && (
               <div className="mt-2">
                 <span className="badge bg-primary fs-6">
-                  {TCG_GAMES[selectedTCG]?.icon} Buscando en {TCG_GAMES[selectedTCG]?.name}
+                  Buscando en {TCG_GAMES[selectedTCG]?.name}
                 </span>
               </div>
             )}
@@ -512,7 +512,7 @@ export default function Marketplace() {
                   <option value="">Elige un Trading Card Game</option>
                   {Object.entries(TCG_GAMES).filter(([key]) => key !== 'unknown').map(([key, tcg]) => (
                     <option key={key} value={key}>
-                      {tcg.icon} {tcg.name}
+                      {tcg.name}
                     </option>
                   ))}
                 </Form.Select>
@@ -652,7 +652,7 @@ export default function Marketplace() {
                       <Card.Body className="p-2">
                         <Card.Title className="fs-6 mb-1 text-truncate">{listing.cardName}</Card.Title>
                         <div className="d-flex justify-content-between align-items-center">
-                          <span className="badge bg-success">${listing.price}</span>
+                          <span className="badge bg-success">₡{listing.price}</span>
                           <small className="text-muted">{listing.condition}</small>
                         </div>
                         <div className="mt-2">
@@ -732,23 +732,17 @@ export default function Marketplace() {
             <Row className="g-4">
               {cards.map(card => (
                 <Col key={card.id} md={6} lg={4} className="mb-4">
-                  <Card className="h-100 shadow-sm hover-effect position-relative">
-                    <div className="position-relative">
-                      <Card.Img 
-                        variant="top" 
-                        src={card.images?.small || 'https://via.placeholder.com/300'} 
-                        className="card-img-custom"
-                        onClick={() => openCardModal(card)}
-                        style={{ cursor: 'pointer', height: '250px', objectFit: 'contain', padding: '1rem' }}
+                  {/* Vista simplificada: solo imagen de carta + información de vendedores */}
+                  <div className="simplified-marketplace-card">
+                    <div className="simplified-card-image-wrapper" onClick={() => openCardModal(card)}>
+                      <img 
+                        src={card.images?.small || 'https://via.placeholder.com/300x400'} 
+                        alt={card.name}
+                        className="simplified-card-image"
                       />
                       
-                      {/* Badge del TCG en esquina superior izquierda */}
-                      <div className="position-absolute top-0 start-0 p-2">
-                        <span className="badge bg-primary">{typeof card.tcgName === 'object' ? JSON.stringify(card.tcgName) : String(card.tcgName || 'TCG')}</span>
-                      </div>
-                      
-                      {/* Botón de favoritos */}
-                      <div className="position-absolute top-0 end-0 p-2">
+                      {/* Botón de favoritos flotante */}
+                      <div className="simplified-favorite-btn">
                         <Button
                           variant={favorites.includes(card.id) ? "danger" : "outline-light"}
                           size="sm"
@@ -756,135 +750,35 @@ export default function Marketplace() {
                             e.stopPropagation();
                             toggleFavorite(card.id);
                           }}
-                          className="rounded-circle p-1"
+                          className="rounded-circle"
                           title={favorites.includes(card.id) ? "Quitar de favoritos" : "Agregar a favoritos"}
-                          style={{ 
-                            backdropFilter: 'blur(10px)',
-                            backgroundColor: favorites.includes(card.id) ? 'rgba(220, 53, 69, 0.9)' : 'rgba(255, 255, 255, 0.8)'
-                          }}
                         >
-                          <FaHeart size={12} className={favorites.includes(card.id) ? 'text-white' : 'text-danger'} />
+                          <FaHeart size={12} />
                         </Button>
                       </div>
                     </div>
                     
-                    <Card.Body 
-                      className="d-flex flex-column" 
-                      onClick={() => openCardModal(card)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <Card.Title className="fs-5 mb-2">{typeof card.name === 'object' ? JSON.stringify(card.name) : String(card.name)}</Card.Title>
-                      <Card.Text className="text-muted small mb-3">
-                        {typeof card.set?.name === 'object' ? JSON.stringify(card.set.name) : String(card.set?.name || '')} • {typeof card.rarity === 'object' ? JSON.stringify(card.rarity) : String(card.rarity || 'Sin rareza')}
-                      </Card.Text>
-                      
-                      {/* Información de precios y vendedores */}
-                      {card.sellers && card.sellers.length > 0 ? (
-                        <div className="mb-3">
-                          <div className="badge bg-info mb-2">✅ Con vendedores locales</div>
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <small className="text-muted">Precio:</small>
-                            <div className="text-end">
-                              {card.minPrice !== card.maxPrice ? (
-                                <>
-                                  <div className="fs-6 fw-bold text-success">${card.minPrice.toFixed(2)} - ${card.maxPrice.toFixed(2)}</div>
-                                  <small className="text-muted">Promedio: ${card.averagePrice.toFixed(2)}</small>
-                                </>
-                              ) : (
-                                <div className="fs-6 fw-bold text-success">${card.minPrice.toFixed(2)}</div>
-                              )}
-                            </div>
+                    {/* Información de vendedores solo si hay */}
+                    {card.sellers && card.sellers.length > 0 && (
+                      <div className="simplified-sellers-info">
+                        <div className="simplified-best-price">
+                          <div className="price-badge">
+                            ₡{card.sellers[0].price}
                           </div>
-                          
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <small className="text-muted">Vendedores:</small>
-                            <span className="badge bg-info">{card.sellers.length}</span>
-                          </div>
-                          
-                          <div className="d-flex justify-content-between align-items-center mb-3">
-                            <small className="text-muted">Stock total:</small>
-                            <span className="badge bg-secondary">{card.totalStock}</span>
-                          </div>
-                          
-                          {/* Mejor precio destacado */}
-                          <div className="border rounded p-2 mb-3 bg-light">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <div>
-                                <div className="fw-bold text-success">${card.sellers[0].price}</div>
-                                <small className="text-muted">{card.sellers[0].condition}</small>
-                                <div className="small">
-                                  <strong>{card.sellers[0].sellerName || "Anónimo"}</strong>
-                                </div>
-                              </div>
-                              <div className="d-flex gap-1">
-                                <Button 
-                                  variant="outline-primary" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Crear objeto listing compatible
-                                    const listing = {
-                                      id: card.sellers[0].listingId,
-                                      cardId: card.id,
-                                      cardName: card.name,
-                                      cardImage: card.images.small,
-                                      price: card.sellers[0].price,
-                                      condition: card.sellers[0].condition,
-                                      sellerId: card.sellers[0].sellerId,
-                                      sellerName: card.sellers[0].sellerName,
-                                      availableQuantity: card.sellers[0].quantity
-                                    };
-                                    addToCart(listing);
-                                  }}
-                                  title="Agregar al carrito"
-                                >
-                                  <FaShoppingCart size={14} />
-                                </Button>
-                                <Button 
-                                  variant="outline-success" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(`https://wa.me/${card.sellers[0].userPhone}`, '_blank');
-                                  }}
-                                  title="Contactar por WhatsApp"
-                                >
-                                  <FaWhatsapp size={14} />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {card.sellers.length > 1 && (
-                            <div className="text-center">
-                              <Button 
-                                variant="link" 
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Abrir modal con todos los vendedores
-                                  openCardModal(card);
-                                }}
-                                className="text-decoration-none"
-                              >
-                                Ver {card.sellers.length - 1} vendedores más
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center text-muted py-3 mb-3">
-                          <div className="badge bg-warning text-dark mb-2">
-                            {card.apiSource === 'mock' ? '🎭 Datos de demostración' : '📡 Solo en API'}
-                          </div>
-                          <small className="d-block">💤 Sin vendedores locales</small>
-                          <div className="mt-2">
-                            <small className="text-info">Haz clic para ver detalles completos</small>
+                          <div className="seller-info">
+                            <small className="seller-name">
+                              {card.sellers[0].sellerName || "Vendedor"}
+                            </small>
+                            {card.sellers.length > 1 && (
+                              <small className="more-sellers">
+                                +{card.sellers.length - 1} más
+                              </small>
+                            )}
                           </div>
                         </div>
-                      )}
-                    </Card.Body>
-                  </Card>
+                      </div>
+                    )}
+                  </div>
                 </Col>
               ))}
             </Row>

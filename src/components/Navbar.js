@@ -100,7 +100,7 @@ const CustomNavbar = () => {
             <img 
               src={logoImage} 
               alt="Tropical Players TCG Logo" 
-              style={{ height: '40px' }}
+              style={{ height: '55px' }}
               className="d-inline-block align-top"
             />
           </Navbar.Brand>
@@ -113,14 +113,6 @@ const CustomNavbar = () => {
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto align-items-center">
               {/* Enlaces principales */}
-              <Nav.Link 
-                as={Link} 
-                to="/" 
-                className={`mx-2 mx-lg-3 nav-hover ${isActive('/') ? 'active' : ''}`}
-              >
-                <FaHome className="d-lg-none me-2" />
-                Inicio
-              </Nav.Link>
 
               <Nav.Link 
                 as={Link} 
@@ -151,14 +143,6 @@ const CustomNavbar = () => {
                     Mi Perfil
                   </Nav.Link>
                   
-                  <Nav.Link 
-                    as={Link} 
-                    to="/dashboard" 
-                    className={`mx-2 mx-lg-3 nav-hover ${isActive('/dashboard') ? 'active' : ''}`}
-                  >
-                    <FaChartLine className="d-lg-none me-2" />
-                    Dashboard
-                  </Nav.Link>
                   
                 </>
               )}
