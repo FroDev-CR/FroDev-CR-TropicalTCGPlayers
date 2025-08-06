@@ -5,7 +5,7 @@ class APISearchService {
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
     this.pokemonApiKey = process.env.REACT_APP_POKEMON_API_KEY;
     this.tcgApiKey = process.env.REACT_APP_TCG_API_KEY;
-    this.useMockData = false; // Desactivado para usar APIs reales
+    this.useMockData = false; // Desactivado - usando proxy para evitar CORS
   }
 
   // Mock data para cuando las APIs fallen
@@ -155,98 +155,48 @@ class APISearchService {
     });
   }
 
-  // Método para buscar en una API específica
+  // Método para buscar en una API específica usando nuestro proxy
   async searchSpecificAPI(tcgType, searchTerm, page = 1, pageSize = 24) {
     if (!searchTerm.trim()) {
       return { cards: [], totalResults: 0, errors: [] };
     }
 
-    console.log(`🔍 Buscando "${searchTerm}" en ${tcgType} API`);
-
-    // Usar datos de demostración (activado por defecto para evitar CORS)
-    if (this.useMockData) {
-      console.log('📝 Usando datos de demostración');
-      const mockCards = this.getMockCards(searchTerm, tcgType);
-      const normalizedMockCards = this.normalizeCards(mockCards);
-      const sortedCards = this.sortByRelevance(normalizedMockCards, searchTerm);
-      
-      const startIndex = (page - 1) * pageSize;
-      const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
-
-      return {
-        cards: paginatedCards,
-        totalResults: sortedCards.length,
-        errors: [{ api: 'Demo', error: 'Modo demostración activado' }],
-        page: page,
-        totalPages: Math.ceil(sortedCards.length / pageSize),
-        usingMockData: true
-      };
-    }
-
-    let allCards = [];
-    let errors = [];
+    console.log(`🔍 Buscando "${searchTerm}" en ${tcgType} via proxy`);
 
     try {
-      if (tcgType === 'pokemon') {
-        // Buscar en Pokemon API
-        if (this.pokemonApiKey) {
-          try {
-            const pokemonResult = await this.searchPokemonAPI(searchTerm, page, pageSize);
-            if (pokemonResult.cards && pokemonResult.cards.length > 0) {
-              allCards = pokemonResult.cards;
-              console.log(`✅ Pokemon API: ${pokemonResult.cards.length} cartas encontradas`);
-            }
-          } catch (error) {
-            console.warn('⚠️ Pokemon API falló:', error.message);
-            errors.push({ api: 'Pokemon', error: 'Error de conectividad' });
-          }
-        } else {
-          errors.push({ api: 'Pokemon', error: 'API key no configurada' });
-        }
-      } else {
-        // Buscar en TCGS API
-        if (this.tcgApiKey) {
-          try {
-            const tcgResult = await this.searchTCGSAPI(tcgType, searchTerm, page, pageSize);
-            if (tcgResult.cards && tcgResult.cards.length > 0) {
-              allCards = tcgResult.cards;
-              console.log(`✅ ${tcgType} API: ${tcgResult.cards.length} cartas encontradas`);
-            }
-          } catch (error) {
-            console.warn(`⚠️ ${tcgType} API falló:`, error.message);
-            errors.push({ api: tcgType, error: 'Error de conectividad' });
-          }
-        } else {
-          errors.push({ api: tcgType, error: 'API key no configurada' });
-        }
+      // Construir URL de nuestro proxy
+      const proxyUrl = `/api/search?tcgType=${encodeURIComponent(tcgType)}&searchTerm=${encodeURIComponent(searchTerm)}&page=${page}&limit=${pageSize}`;
+      
+      console.log(`📡 Llamando a proxy: ${proxyUrl}`);
+
+      const response = await fetch(proxyUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Proxy error: ${response.status}`);
       }
 
-      // Si la API falló, usar datos de demostración
-      if (allCards.length === 0) {
-        console.log('📝 API falló - usando datos de demostración');
-        const mockCards = this.getMockCards(searchTerm, tcgType);
-        allCards = mockCards;
-        errors.push({ api: 'Fallback', error: 'API no disponible - mostrando datos de demostración' });
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'API proxy failed');
       }
 
-      // Normalizar y eliminar duplicados
-      const normalizedCards = this.normalizeCards(allCards);
+      // Normalizar las cartas recibidas
+      const normalizedCards = this.normalizeCards(data.cards);
       const uniqueCards = this.removeDuplicates(normalizedCards);
-
-      // Ordenar por relevancia
       const sortedCards = this.sortByRelevance(uniqueCards, searchTerm);
 
-      // Paginación
+      // Paginación local (las APIs pueden devolver más de lo que necesitamos)
       const startIndex = (page - 1) * pageSize;
       const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
 
       const result = {
         cards: paginatedCards,
         totalResults: sortedCards.length,
-        errors: errors,
+        errors: [],
         page: page,
         totalPages: Math.ceil(sortedCards.length / pageSize),
-        usingMockData: allCards.length > 0 && allCards[0]?.apiSource === 'mock'
+        usingMockData: false
       };
 
       console.log(`✅ Búsqueda en ${tcgType} completada: ${sortedCards.length} cartas encontradas`);
@@ -255,8 +205,8 @@ class APISearchService {
     } catch (error) {
       console.error(`Error en búsqueda de ${tcgType}:`, error);
       
-      // Fallback final: usar datos de demostración
-      console.log('📝 Error general - usando datos de demostración como fallback');
+      // Fallback: usar datos de demostración
+      console.log('📝 Error en proxy - usando datos de demostración como fallback');
       const mockCards = this.getMockCards(searchTerm, tcgType);
       const normalizedMockCards = this.normalizeCards(mockCards);
       const sortedCards = this.sortByRelevance(normalizedMockCards, searchTerm);
@@ -267,7 +217,7 @@ class APISearchService {
       return {
         cards: paginatedCards,
         totalResults: sortedCards.length,
-        errors: [{ api: 'Error', error: 'Error de conectividad - mostrando datos de demostración' }],
+        errors: [{ api: 'Proxy', error: 'Proxy no disponible - mostrando datos de demostración' }],
         page: page,
         totalPages: Math.ceil(sortedCards.length / pageSize),
         usingMockData: true
