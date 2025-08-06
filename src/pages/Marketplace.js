@@ -1,15 +1,16 @@
 // src/pages/Marketplace.js
 import { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Form, Spinner, Button, Pagination, Modal, Alert } from 'react-bootstrap';
-import { collection, query, where, getDocs, orderBy, limit, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Container, Row, Col, Card, Form, Spinner, Button, Pagination, Alert } from 'react-bootstrap';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
 import SellCardModal from '../components/SellCardModal';
 import MarketplaceFilters from '../components/MarketplaceFilters';
 import FeaturedSections from '../components/FeaturedSections';
-import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaUser, FaTag, FaStar, FaExchangeAlt, FaFilter } from 'react-icons/fa';
-import ReactStars from "react-rating-stars-component";
+import CardDetailModal from '../components/CardDetailModal';
+import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaFilter } from 'react-icons/fa';
+import apiSearchService from '../services/apiSearchService';
 
 // Configuración simple para mapear tipos de TCG
 const TCG_GAMES = {
@@ -23,72 +24,7 @@ const TCG_GAMES = {
   unknown: { name: 'Desconocido', icon: '❓' }
 };
 
-const rateUser = async (userId, newRating) => {
-  try {
-    const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
-
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
-      const currentRating = userData.rating || 0;
-      const currentReviews = userData.reviews || 0;
-
-      const updatedReviews = currentReviews + 1;
-      const updatedRating = (currentRating * currentReviews + newRating) / updatedReviews;
-
-      await updateDoc(userRef, {
-        rating: updatedRating,
-        reviews: updatedReviews,
-      });
-    }
-  } catch (error) {
-    console.error("Error al calificar:", error);
-    alert("Hubo un error al calificar.");
-  }
-};
-
-const SellerRating = ({ sellerId }) => {
-  const [rating, setRating] = useState(0);
-  const [reviewsCount, setReviewsCount] = useState(0);
-
-  useEffect(() => {
-    const fetchSellerData = async () => {
-      if (sellerId) {
-        const userRef = doc(db, 'users', sellerId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          setRating(userData.rating || 0);
-          setReviewsCount(userData.reviews || 0);
-        }
-      }
-    };
-    fetchSellerData();
-  }, [sellerId]);
-
-  const handleRating = (newRating) => {
-    rateUser(sellerId, newRating).then(() => {
-      setRating((prev) => (prev * reviewsCount + newRating) / (reviewsCount + 1));
-      setReviewsCount(prev => prev + 1);
-    });
-  };
-
-  return (
-    <div className="d-flex align-items-center gap-2 mt-1">
-      <ReactStars
-        count={5}
-        value={rating}
-        size={20}
-        activeColor="#ffd700"
-        edit={true}
-        onChange={handleRating}
-      />
-      <small className="text-muted">
-        ({rating.toFixed(1)} · {reviewsCount} calificaciones)
-      </small>
-    </div>
-  );
-};
+// Utility functions moved to CardDetailModal for better organization
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -244,39 +180,128 @@ export default function Marketplace() {
     }
   }, [searchTerm]);
 
-  // Función simplificada - solo buscar en Firestore listings (rápido)
-  const searchCardsSimple = async (searchTerm, page = 1) => {
+  // Función unificada - buscar en APIs externas Y vendedores locales
+  const searchCardsUnified = async (searchTerm, page = 1, pageSize = 12, tcgFilter = 'all') => {
     const sanitizedTerm = searchTerm
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9\s\-']/g, '')
       .replace(/\s+/g, ' ');
     
-    console.log(`🔍 Búsqueda rápida en listings: "${sanitizedTerm}"`);
+    console.log(`🔍 Búsqueda unificada: "${sanitizedTerm}" (filtro: ${tcgFilter})`);
     
-    // Solo buscar en listings existentes (súper rápido)
-    const listingsQuery = query(
-      collection(db, 'listings'),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'),
-      limit(100)
-    );
-    
-    const listingsSnapshot = await getDocs(listingsQuery);
-    let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    
-    // Filtrar por término de búsqueda
-    if (sanitizedTerm) {
-      allListings = allListings.filter(listing => 
-        listing.cardName && listing.cardName.toLowerCase().includes(sanitizedTerm.toLowerCase())
+    try {
+      // Buscar en APIs externas
+      const apiResults = await apiSearchService.searchAllAPIs(
+        sanitizedTerm, 
+        page, 
+        pageSize, 
+        tcgFilter
       );
+      
+      // Buscar vendedores locales en paralelo
+      const localSellers = await searchLocalSellers(sanitizedTerm);
+      
+      // Combinar resultados: agregar vendedores locales a las cartas de API
+      const enrichedCards = apiResults.cards.map(card => {
+        const cardSellers = localSellers.filter(seller => 
+          seller.cardId === card.id || 
+          seller.cardName.toLowerCase().includes(card.name.toLowerCase())
+        );
+        
+        return {
+          ...card,
+          sellers: cardSellers,
+          hasLocalSellers: cardSellers.length > 0
+        };
+      });
+      
+      return {
+        cards: enrichedCards,
+        totalResults: apiResults.totalResults,
+        errors: apiResults.errors || [],
+        page: apiResults.page,
+        totalPages: apiResults.totalPages
+      };
+      
+    } catch (error) {
+      console.error('Error en búsqueda unificada:', error);
+      // Fallback: buscar solo en vendedores locales
+      const localResults = await searchLocalSellers(sanitizedTerm);
+      return {
+        cards: convertListingsToCards(localResults),
+        totalResults: localResults.length,
+        errors: [{ api: 'Unified', error: 'API externa falló, mostrando solo vendedores locales' }]
+      };
     }
+  };
+  
+  // Buscar solo en vendedores locales
+  const searchLocalSellers = async (searchTerm) => {
+    try {
+      const listingsQuery = query(
+        collection(db, 'listings'),
+        where('status', '==', 'active'),
+        orderBy('createdAt', 'desc'),
+        limit(100)
+      );
+      
+      const listingsSnapshot = await getDocs(listingsQuery);
+      let allListings = listingsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Filtrar por término de búsqueda
+      if (searchTerm) {
+        allListings = allListings.filter(listing => 
+          listing.cardName && listing.cardName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      return allListings;
+    } catch (error) {
+      console.error('Error buscando vendedores locales:', error);
+      return [];
+    }
+  };
+  
+  // Convertir listings a formato de cartas
+  const convertListingsToCards = (listings) => {
+    const cardMap = new Map();
     
-    return { listings: allListings, errors: [] };
+    listings.forEach(listing => {
+      const cardId = listing.cardId || listing.id;
+      
+      if (!cardMap.has(cardId)) {
+        cardMap.set(cardId, {
+          id: cardId,
+          name: listing.cardName,
+          images: { small: listing.cardImage, large: listing.cardImage },
+          set: { name: listing.setName || 'Desconocido' },
+          rarity: listing.rarity || 'Sin rareza',
+          tcgType: listing.tcgType || 'unknown',
+          tcgName: TCG_GAMES[listing.tcgType]?.name || 'Desconocido',
+          sellers: [],
+          hasLocalSellers: true
+        });
+      }
+      
+      const card = cardMap.get(cardId);
+      card.sellers.push({
+        listingId: listing.id,
+        sellerId: listing.sellerId,
+        sellerName: listing.sellerName,
+        price: listing.price,
+        condition: listing.condition,
+        quantity: listing.availableQuantity || listing.quantity || 1,
+        createdAt: listing.createdAt,
+        userPhone: listing.userPhone
+      });
+    });
+    
+    return Array.from(cardMap.values());
   };
 
 
-  // Función de búsqueda simple sin bucles
+  // Función de búsqueda unificada (APIs + vendedores locales)
   const performSearch = useCallback(async (term, page = 1) => {
     if (!term.trim()) {
       setCards([]);
@@ -290,48 +315,15 @@ export default function Marketplace() {
     setSearchError('');
     
     try {
-      // Búsqueda súper rápida solo en listings existentes
-      const { listings: allListings } = await searchCardsSimple(term, page);
+      // Determinar filtro de TCG activo
+      const activeTcgFilter = filters.tcgTypes.length === 1 ? filters.tcgTypes[0] : 'all';
       
-      // Crear cards únicos basados en los listings
-      const cardMap = new Map();
+      // Búsqueda unificada en APIs externas + vendedores locales
+      const searchResults = await searchCardsUnified(term, page, 12, activeTcgFilter);
       
-      allListings.forEach(listing => {
-        const cardId = listing.cardId;
-        
-        if (!cardMap.has(cardId)) {
-          cardMap.set(cardId, {
-            id: cardId,
-            name: listing.cardName,
-            images: { small: listing.cardImage, large: listing.cardImage },
-            set: { name: listing.setName || 'Desconocido' },
-            rarity: listing.rarity || 'Sin rareza',
-            tcgType: listing.tcgType || 'unknown',
-            tcgName: TCG_GAMES[listing.tcgType]?.name || 'Desconocido',
-            sellers: [],
-            averagePrice: 0,
-            minPrice: 0,
-            maxPrice: 0,
-            totalStock: 0
-          });
-        }
-        
-        const card = cardMap.get(cardId);
-        card.sellers.push({
-          listingId: listing.id,
-          sellerId: listing.sellerId,
-          sellerName: listing.sellerName,
-          price: listing.price,
-          condition: listing.condition,
-          quantity: listing.availableQuantity || listing.quantity || 1,
-          createdAt: listing.createdAt,
-          userPhone: listing.userPhone
-        });
-      });
-      
-      // Calcular precios ponderados
-      cardMap.forEach((card) => {
-        if (card.sellers.length > 0) {
+      // Procesar cartas y calcular precios de vendedores
+      const processedCards = searchResults.cards.map(card => {
+        if (card.sellers && card.sellers.length > 0) {
           const prices = card.sellers.map(s => s.price);
           const quantities = card.sellers.map(s => s.quantity);
           
@@ -344,38 +336,39 @@ export default function Marketplace() {
           }, 0);
           card.averagePrice = totalWeightedPrice / card.totalStock;
           
+          // Ordenar vendedores por precio
           card.sellers.sort((a, b) => a.price - b.price);
         }
+        
+        return card;
       });
       
-      // Convertir a array y aplicar filtros
-      let finalCards = Array.from(cardMap.values());
-      finalCards = applyFilters(finalCards, filters);
-      
-      // Paginación
-      const itemsPerPage = 12;
-      const totalCount = finalCards.length;
-      const calculatedPages = Math.ceil(totalCount / itemsPerPage);
-      const startIndex = (page - 1) * itemsPerPage;
-      const paginatedCards = finalCards.slice(startIndex, startIndex + itemsPerPage);
+      // Aplicar filtros locales
+      let finalCards = applyFilters(processedCards, filters);
 
-      setCards(paginatedCards);
-      setTotalResults(totalCount);
-      setTotalPages(calculatedPages);
+      setCards(finalCards);
+      setTotalResults(searchResults.totalResults);
+      setTotalPages(searchResults.totalPages || Math.ceil(finalCards.length / 12));
       setCurrentPage(page);
 
-      if (paginatedCards.length === 0) {
-        setSearchError('No se encontraron cartas en venta que coincidan con tu búsqueda.');
+      // Mostrar errores de API si los hay
+      if (searchResults.errors && searchResults.errors.length > 0) {
+        const errorMessages = searchResults.errors.map(err => `${err.api}: ${err.error}`).join('; ');
+        setSearchError(`Algunos servicios no están disponibles: ${errorMessages}`);
+      }
+      
+      if (finalCards.length === 0) {
+        setSearchError('No se encontraron cartas que coincidan con tu búsqueda.');
       }
 
-      console.log(`✅ Búsqueda completada: ${finalCards.length} cartas encontradas`);
+      console.log(`✅ Búsqueda completada: ${finalCards.length} cartas encontradas (${searchResults.totalResults} total)`);
 
     } catch (error) {
       console.error('Error searching cards:', error);
       setCards([]);
       setTotalResults(0);
       setTotalPages(1);
-      setSearchError(error.message || 'Error al buscar cartas. Inténtalo de nuevo.');
+      setSearchError('Error al buscar cartas. Verifica tu conexión e inténtalo de nuevo.');
     }
     setLoading(false);
   }, [filters]);
@@ -470,7 +463,7 @@ export default function Marketplace() {
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
           <div className="mb-3 mb-md-0">
             <h2 className="section-title mb-2">🏪 Marketplace TCG Unificado</h2>
-            <p className="text-muted mb-0">Busca cartas en múltiples APIs y compara precios de vendedores en tiempo real</p>
+            <p className="text-muted mb-0">Busca cartas en Pokémon, One Piece, Dragon Ball, Magic y más TCGs. Encuentra vendedores locales al mejor precio.</p>
           </div>
           <div className="d-flex gap-2">
             <Button 
@@ -493,7 +486,7 @@ export default function Marketplace() {
             </span>
             <Form.Control
               type="text"
-              placeholder="🔍 Buscar cartas en todos los TCGs - Pokémon, One Piece, Dragon Ball, Magic, Digimon y más..."
+              placeholder="🔍 Buscar cartas en APIs externas - Pokémon, One Piece, Dragon Ball, Magic, Digimon y más..."
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchTerm.trim() && performSearch(searchTerm, 1)}
@@ -539,7 +532,8 @@ export default function Marketplace() {
           {totalResults > 0 && (
             <div className="d-flex justify-content-between align-items-center">
               <div className="text-muted small">
-                <strong>Cartas en venta:</strong> Mostrando {(currentPage - 1) * 10 + 1} - {Math.min(currentPage * 10, totalResults)} de {totalResults} resultados
+                <strong>Cartas encontradas:</strong> Mostrando {(currentPage - 1) * 12 + 1} - {Math.min(currentPage * 12, cards.length)} de {totalResults} resultados
+                <span className="ms-2">📡 Datos de APIs externas + vendedores locales</span>
               </div>
             </div>
           )}
@@ -723,9 +717,10 @@ export default function Marketplace() {
                         {card.set?.name} • {card.rarity || 'Sin rareza'}
                       </Card.Text>
                       
-                      {/* Información de precios */}
+                      {/* Información de precios y vendedores */}
                       {card.sellers && card.sellers.length > 0 ? (
                         <div className="mb-3">
+                          <div className="badge bg-info mb-2">✅ Con vendedores locales</div>
                           <div className="d-flex justify-content-between align-items-center mb-2">
                             <small className="text-muted">Precio:</small>
                             <div className="text-end">
@@ -818,9 +813,10 @@ export default function Marketplace() {
                         </div>
                       ) : (
                         <div className="text-center text-muted py-3 mb-3">
-                          <small>💤 No hay vendedores actualmente</small>
+                          <div className="badge bg-warning text-dark mb-2">📡 Solo en API</div>
+                          <small className="d-block">💤 Sin vendedores locales</small>
                           <div className="mt-2">
-                            <small className="text-info">Haz clic para ver detalles de la carta</small>
+                            <small className="text-info">Haz clic para ver detalles completos</small>
                           </div>
                         </div>
                       )}
@@ -837,275 +833,12 @@ export default function Marketplace() {
 
       <SellCardModal show={showSellModal} handleClose={() => setShowSellModal(false)} />
       
-      {/* Modal Gigante de Detalle de Carta */}
-      <Modal 
-        show={showCardModal} 
+      {/* Modal de Detalle de Carta - Nuevo componente integrado */}
+      <CardDetailModal 
+        show={showCardModal}
         onHide={closeCardModal}
-        size="xl"
-        centered
-        className="card-detail-modal"
-      >
-        <Modal.Header closeButton className="border-0 bg-light">
-          <Modal.Title className="d-flex align-items-center gap-2">
-            <span className="badge bg-primary">{selectedCard?.tcgName || 'TCG'}</span>
-            {selectedCard?.name}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="p-0" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-          {selectedCard && (
-            <div className="row g-0">
-              {/* Columna izquierda: Imagen gigante de la carta */}
-              <div className="col-lg-5 bg-gradient" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                <div className="p-4 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '500px' }}>
-                  <img 
-                    src={selectedCard.images?.large || selectedCard.images?.small || 'https://via.placeholder.com/400'} 
-                    alt={selectedCard.name}
-                    className="img-fluid rounded shadow-lg"
-                    style={{ 
-                      maxWidth: '100%', 
-                      maxHeight: '450px', 
-                      objectFit: 'contain',
-                      border: '3px solid rgba(255,255,255,0.3)'
-                    }}
-                  />
-                  <div className="mt-3 text-center">
-                    <Button
-                      variant={favorites.includes(selectedCard?.id) ? "danger" : "light"}
-                      onClick={() => selectedCard && toggleFavorite(selectedCard.id)}
-                      className="btn-lg"
-                    >
-                      <FaHeart className="me-2" />
-                      {favorites.includes(selectedCard?.id) ? "💖 En favoritos" : "🤍 Agregar a favoritos"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Columna derecha: Información y vendedores */}
-              <div className="col-lg-7">
-                <div className="p-4">
-                  {/* Header de la carta */}
-                  <div className="mb-4">
-                    <h3 className="card-title mb-2">{selectedCard.name}</h3>
-                    <div className="d-flex flex-wrap gap-2 mb-3">
-                      <span className="badge bg-secondary">{selectedCard.set?.name || 'Desconocido'}</span>
-                      <span className="badge bg-warning text-dark">{selectedCard.rarity || 'Sin rareza'}</span>
-                      {selectedCard.tcgName && <span className="badge bg-info">{selectedCard.tcgName}</span>}
-                    </div>
-                  </div>
-
-                  {/* Información específica por TCG */}
-                  <div className="mb-4">
-                    <h5 className="mb-3">📊 Detalles de la carta</h5>
-                    <div className="row g-3">
-                      {/* Campos comunes */}
-                      <div className="col-6">
-                        <div className="d-flex align-items-center gap-2">
-                          <FaTag className="text-muted" size={14} />
-                          <strong>Set:</strong> {selectedCard.set?.name || 'Desconocido'}
-                        </div>
-                      </div>
-                      <div className="col-6">
-                        <div className="d-flex align-items-center gap-2">
-                          <FaStar className="text-warning" size={14} />
-                          <strong>Rareza:</strong> {selectedCard.rarity || 'Sin rareza'}
-                        </div>
-                      </div>
-                      
-                      {/* Campos específicos de Pokémon */}
-                      {selectedCard.tcgType === 'pokemon' && (
-                        <>
-                          {selectedCard.hp && (
-                            <div className="col-6">
-                              <strong>HP:</strong> {selectedCard.hp}
-                            </div>
-                          )}
-                          {selectedCard.types && (
-                            <div className="col-6">
-                              <strong>Tipo:</strong> {selectedCard.types.join(', ')}
-                            </div>
-                          )}
-                          {selectedCard.artist && (
-                            <div className="col-6">
-                              <div className="d-flex align-items-center gap-2">
-                                <FaUser className="text-muted" size={14} />
-                                <strong>Artista:</strong> {selectedCard.artist}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      
-                      {/* Campos específicos de otros TCGs */}
-                      {selectedCard.tcgType !== 'pokemon' && (
-                        <>
-                          {selectedCard.cost && (
-                            <div className="col-6">
-                              <strong>Costo:</strong> {selectedCard.cost}
-                            </div>
-                          )}
-                          {selectedCard.power && (
-                            <div className="col-6">
-                              <strong>Poder:</strong> {selectedCard.power}
-                            </div>
-                          )}
-                          {selectedCard.color && (
-                            <div className="col-6">
-                              <strong>Color:</strong> {selectedCard.color}
-                            </div>
-                          )}
-                          {selectedCard.attribute && (
-                            <div className="col-6">
-                              <strong>Atributo:</strong> {selectedCard.attribute}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Ataques (solo Pokémon) */}
-                  {selectedCard.attacks && selectedCard.attacks.length > 0 && (
-                    <div className="mb-4">
-                      <h5 className="mb-3">⚔️ Ataques</h5>
-                      {selectedCard.attacks.map((attack, index) => (
-                        <div key={index} className="border rounded p-3 mb-2 bg-light">
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <strong className="text-primary">{attack.name}</strong>
-                            <span className="badge bg-danger">{attack.damage || '-'}</span>
-                          </div>
-                          {attack.text && (
-                            <small className="text-muted">{attack.text}</small>
-                          )}
-                          {attack.cost && (
-                            <div className="mt-1">
-                              <small><strong>Costo:</strong> {attack.cost.join(', ')}</small>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Habilidades (otros TCGs) */}
-                  {selectedCard.ability && (
-                    <div className="mb-4">
-                      <h5 className="mb-3">✨ Habilidad</h5>
-                      <div className="border rounded p-3 bg-light">
-                        <small className="text-muted">{selectedCard.ability}</small>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Descripción/Flavor Text */}
-                  {selectedCard.flavorText && (
-                    <div className="mb-4">
-                      <h5 className="mb-3">📖 Descripción</h5>
-                      <blockquote className="blockquote">
-                        <p className="text-muted fst-italic">"{selectedCard.flavorText}"</p>
-                      </blockquote>
-                    </div>
-                  )}
-
-                  {/* Lista de vendedores */}
-                  <div className="mb-3">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h5 className="mb-0">🏪 Vendedores disponibles</h5>
-                      {selectedCard.sellers && selectedCard.sellers.length > 0 && (
-                        <div className="d-flex gap-2">
-                          <span className="badge bg-success">Desde ${selectedCard.minPrice.toFixed(2)}</span>
-                          {selectedCard.minPrice !== selectedCard.maxPrice && (
-                            <span className="badge bg-info">Hasta ${selectedCard.maxPrice.toFixed(2)}</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {selectedCard.sellers && selectedCard.sellers.length > 0 ? (
-                      <div className="seller-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                        {selectedCard.sellers.map((seller, index) => (
-                          <div key={index} className="border rounded p-3 mb-3 seller-card">
-                            <div className="d-flex justify-content-between align-items-start">
-                              <div className="flex-grow-1">
-                                <div className="d-flex align-items-center gap-2 mb-2">
-                                  <h6 className="mb-0 text-success fs-4">${seller.price}</h6>
-                                  {index === 0 && <span className="badge bg-warning text-dark">Mejor precio</span>}
-                                </div>
-                                <div className="mb-2">
-                                  <strong>Condición:</strong> {seller.condition}
-                                </div>
-                                <div className="mb-2">
-                                  <strong>Vendedor:</strong> {seller.sellerName || "Anónimo"}
-                                </div>
-                                <div className="mb-2">
-                                  <strong>Stock:</strong> {seller.quantity} disponible{seller.quantity > 1 ? 's' : ''}
-                                </div>
-                                <SellerRating sellerId={seller.sellerId} />
-                              </div>
-                              <div className="d-flex flex-column gap-2">
-                                <Button 
-                                  variant="primary" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Crear objeto listing compatible
-                                    const listing = {
-                                      id: seller.listingId,
-                                      cardId: selectedCard.id,
-                                      cardName: selectedCard.name,
-                                      cardImage: selectedCard.images.small,
-                                      price: seller.price,
-                                      condition: seller.condition,
-                                      sellerId: seller.sellerId,
-                                      sellerName: seller.sellerName,
-                                      availableQuantity: seller.quantity
-                                    };
-                                    addToCart(listing);
-                                    alert('¡Carta agregada al carrito!');
-                                  }}
-                                  className="d-flex align-items-center gap-1"
-                                >
-                                  <FaShoppingCart size={14} />
-                                  Carrito
-                                </Button>
-                                <Button 
-                                  variant="success" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(`https://wa.me/${seller.userPhone}`, '_blank');
-                                  }}
-                                  className="d-flex align-items-center gap-1"
-                                >
-                                  <FaWhatsapp size={14} />
-                                  WhatsApp
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-muted py-4">
-                        <div className="mb-3">
-                          <FaExchangeAlt size={48} className="text-muted opacity-50" />
-                        </div>
-                        <h6>No hay vendedores disponibles</h6>
-                        <p className="mb-0">Esta carta no está siendo vendida actualmente por ningún usuario.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer className="border-0 bg-light">
-          <Button variant="secondary" onClick={closeCardModal} size="lg">
-            Cerrar
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        card={selectedCard}
+      />
 
     </motion.div>
   );
