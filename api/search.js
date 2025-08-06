@@ -21,35 +21,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    let apiUrl = '';
-    let headers = {};
+    // TCGS API - ahora incluye Pokemon también
+    const endpoints = {
+      pokemon: '/pokemon/cards',
+      onepiece: '/one-piece/cards',
+      dragonball: '/dragon-ball-fusion/cards',
+      digimon: '/digimon/cards',
+      magic: '/magic/cards',
+      unionarena: '/union-arena/cards',
+      gundam: '/gundam/cards'
+    };
 
-    if (tcgType === 'pokemon') {
-      // Pokemon TCG API
-      apiUrl = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchTerm)}*&pageSize=${limit}&page=${page}`;
-      if (process.env.POKEMON_API_KEY) {
-        headers['X-Api-Key'] = process.env.POKEMON_API_KEY;
-      }
-    } else {
-      // TCGS API
-      const endpoints = {
-        onepiece: '/one-piece/cards',
-        dragonball: '/dragon-ball-fusion/cards',
-        digimon: '/digimon/cards',
-        magic: '/magic/cards',
-        unionarena: '/union-arena/cards',
-        gundam: '/gundam/cards'
-      };
+    const endpoint = endpoints[tcgType];
+    if (!endpoint) {
+      return res.status(400).json({ error: 'Invalid TCG type' });
+    }
 
-      const endpoint = endpoints[tcgType];
-      if (!endpoint) {
-        return res.status(400).json({ error: 'Invalid TCG type' });
-      }
-
-      apiUrl = `https://apitcg.com/api${endpoint}?name=${encodeURIComponent(searchTerm)}&limit=${limit}&page=${page}`;
-      if (process.env.TCGS_API_KEY) {
-        headers['x-api-key'] = process.env.TCGS_API_KEY;
-      }
+    const apiUrl = `https://apitcg.com/api${endpoint}?name=${encodeURIComponent(searchTerm)}&limit=${limit}&page=${page}`;
+    const headers = {};
+    
+    if (process.env.TCGS_API_KEY) {
+      headers['x-api-key'] = process.env.TCGS_API_KEY;
     }
 
     console.log(`🔍 Proxy request to: ${apiUrl}`);
@@ -64,16 +56,11 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Normalize response format
-    let cards = [];
-    if (tcgType === 'pokemon') {
-      cards = data.data || [];
-    } else {
-      cards = (data.data || data.cards || []).map(card => ({
-        ...card,
-        tcgType: tcgType
-      }));
-    }
+    // Normalize response format - todas las respuestas son de TCGS API
+    const cards = (data.data || data.cards || []).map(card => ({
+      ...card,
+      tcgType: tcgType
+    }));
 
     res.status(200).json({
       success: true,

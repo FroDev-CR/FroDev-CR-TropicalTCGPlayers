@@ -3,7 +3,6 @@ class APISearchService {
   constructor() {
     this.cache = new Map();
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
-    this.pokemonApiKey = process.env.REACT_APP_POKEMON_API_KEY;
     this.tcgApiKey = process.env.REACT_APP_TCG_API_KEY;
     this.useMockData = false; // Desactivado - usando proxy para evitar CORS
   }
@@ -270,23 +269,8 @@ class APISearchService {
     let successfulAPIs = 0;
 
     try {
-      // Buscar en Pokemon API si está disponible
-      if ((tcgFilter === 'all' || tcgFilter === 'pokemon') && this.pokemonApiKey) {
-        try {
-          const pokemonResult = await this.searchPokemonAPI(searchTerm, 1, 50);
-          if (pokemonResult.cards && pokemonResult.cards.length > 0) {
-            allCards = allCards.concat(pokemonResult.cards);
-            successfulAPIs++;
-            console.log(`✅ Pokemon API: ${pokemonResult.cards.length} cartas encontradas`);
-          }
-        } catch (error) {
-          console.warn('⚠️ Pokemon API falló:', error.message);
-          errors.push({ api: 'Pokemon', error: 'Error de CORS o conectividad' });
-        }
-      }
-
-      // Buscar en TCGS APIs
-      const tcgGames = ['onepiece', 'dragonball', 'digimon', 'magic', 'unionarena', 'gundam'];
+      // Buscar en TCGS APIs - ahora incluye Pokemon también
+      const tcgGames = ['pokemon', 'onepiece', 'dragonball', 'digimon', 'magic', 'unionarena', 'gundam'];
       for (const game of tcgGames) {
         if ((tcgFilter === 'all' || tcgFilter === game) && this.tcgApiKey) {
           try {
@@ -365,35 +349,6 @@ class APISearchService {
     }
   }
 
-  // Buscar en Pokemon API
-  async searchPokemonAPI(searchTerm, page = 1, pageSize = 50) {
-    if (!this.pokemonApiKey) {
-      console.warn('⚠️ Pokemon API key no configurada');
-      return { cards: [] };
-    }
-
-    try {
-      const response = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchTerm)}*&pageSize=${pageSize}&page=${page}`,
-        {
-          headers: {
-            'X-Api-Key': this.pokemonApiKey
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Pokemon API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { cards: data.data || [] };
-
-    } catch (error) {
-      console.error('Error en Pokemon API:', error);
-      throw error;
-    }
-  }
 
   // Buscar en TCGS API
   async searchTCGSAPI(tcgType, searchTerm, page = 1, limit = 30) {
@@ -450,39 +405,12 @@ class APISearchService {
 
   // Obtener detalles de una carta específica
   async getCardDetails(cardId, tcgType) {
-    if (tcgType === 'pokemon') {
-      return this.getPokemonCardDetails(cardId);
-    } else {
-      return this.getTCGSCardDetails(cardId, tcgType);
-    }
-  }
-
-  async getPokemonCardDetails(cardId) {
-    try {
-      const response = await fetch(
-        `https://api.pokemontcg.io/v2/cards/${cardId}`,
-        {
-          headers: {
-            'X-Api-Key': this.pokemonApiKey
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Pokemon API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return this.normalizePokemonCard(data.data);
-
-    } catch (error) {
-      console.error('Error obteniendo detalles de carta Pokemon:', error);
-      return null;
-    }
+    return this.getTCGSCardDetails(cardId, tcgType);
   }
 
   async getTCGSCardDetails(cardId, tcgType) {
     const apiEndpoints = {
+      pokemon: '/pokemon/cards',
       onepiece: '/one-piece/cards',
       dragonball: '/dragon-ball-fusion/cards',
       digimon: '/digimon/cards', 
@@ -519,73 +447,18 @@ class APISearchService {
     }
   }
 
-  // Normalizar cartas de diferentes APIs a un formato unificado
+  // Normalizar cartas usando solo formato TCGS API
   normalizeCards(cards) {
     return cards.map(card => {
-      if (card.apiSource === 'tcgapis' || card.tcgType !== 'pokemon') {
-        return this.normalizeTCGSCard(card, card.tcgType);
-      } else {
-        return this.normalizePokemonCard(card);
-      }
+      return this.normalizeTCGSCard(card, card.tcgType);
     });
   }
 
-  normalizePokemonCard(card) {
-    // Función helper para convertir valores a string seguro
-    const safeString = (value) => {
-      if (value === null || value === undefined) return '';
-      if (typeof value === 'object') return JSON.stringify(value);
-      return String(value);
-    };
-
-    // Función para procesar arrays de forma segura
-    const safeArray = (value) => {
-      if (!Array.isArray(value)) return [];
-      return value.map(item => {
-        if (typeof item === 'object') {
-          // Para objetos como attacks/abilities, mantener estructura pero convertir valores
-          const safeItem = {};
-          for (const [key, val] of Object.entries(item)) {
-            safeItem[key] = safeString(val);
-          }
-          return safeItem;
-        }
-        return safeString(item);
-      });
-    };
-
-    return {
-      id: safeString(card.id),
-      name: safeString(card.name),
-      images: {
-        small: safeString(card.images?.small || ''),
-        large: safeString(card.images?.large || card.images?.small || '')
-      },
-      set: {
-        name: safeString(card.set?.name || 'Desconocido')
-      },
-      rarity: safeString(card.rarity || 'Común'),
-      tcgType: 'pokemon',
-      tcgName: 'Pokémon TCG',
-      apiSource: safeString(card.apiSource || 'pokemon'),
-      
-      // Campos específicos de Pokemon
-      hp: safeString(card.hp || ''),
-      types: safeArray(card.types || []),
-      attacks: safeArray(card.attacks || []),
-      abilities: safeArray(card.abilities || []),
-      artist: safeString(card.artist || ''),
-      flavorText: safeString(card.flavorText || ''),
-      
-      // Precios si están disponibles (mantener objetos para el modal)
-      tcgplayer: card.tcgplayer || null,
-      legalities: card.legalities || null
-    };
-  }
 
   normalizeTCGSCard(card, tcgType) {
     // Mapear nombres de TCG
     const tcgNames = {
+      pokemon: 'Pokémon TCG',
       onepiece: 'One Piece',
       dragonball: 'Dragon Ball',
       digimon: 'Digimon',
@@ -607,6 +480,22 @@ class APISearchService {
       if (card.images?.small) return safeString(card.images.small);
       if (card.card_image) return safeString(card.card_image);
       return '';
+    };
+
+    // Función para procesar arrays de forma segura
+    const safeArray = (value) => {
+      if (!Array.isArray(value)) return [];
+      return value.map(item => {
+        if (typeof item === 'object') {
+          // Para objetos como attacks/abilities, mantener estructura pero convertir valores
+          const safeItem = {};
+          for (const [key, val] of Object.entries(item)) {
+            safeItem[key] = safeString(val);
+          }
+          return safeItem;
+        }
+        return safeString(item);
+      });
     };
 
     return {
@@ -632,7 +521,18 @@ class APISearchService {
       attribute: safeString(card.attribute || ''),
       ability: safeString(card.ability || card.card_text || ''),
       effect: safeString(card.effect || card.effect_text || ''),
-      flavorText: safeString(card.flavor_text || card.flavour_text || '')
+      flavorText: safeString(card.flavor_text || card.flavour_text || ''),
+      
+      // Campos específicos de Pokemon (si están disponibles)
+      hp: safeString(card.hp || ''),
+      types: safeArray(card.types || []),
+      attacks: safeArray(card.attacks || []),
+      abilities: safeArray(card.abilities || []),
+      artist: safeString(card.artist || ''),
+      
+      // Precios y legalidades (mantener objetos para el modal)
+      tcgplayer: card.tcgplayer || null,
+      legalities: card.legalities || null
     };
   }
 
