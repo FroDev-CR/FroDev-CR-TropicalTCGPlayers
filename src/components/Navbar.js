@@ -141,7 +141,7 @@ const CustomNavbar = () => {
                       variant="outline-light" 
                       onClick={handleLogout}
                       size="sm"
-                      className="d-flex align-items-center gap-2 w-100 w-lg-auto justify-content-center"
+                      className="d-flex align-items-center gap-2 w-100 w-lg-auto justify-content-center tropical-button"
                     >
                       <FaSignOutAlt size={14} />
                       <span className="d-none d-lg-inline">Cerrar Sesión</span>
@@ -153,7 +153,7 @@ const CustomNavbar = () => {
                     variant="outline-light" 
                     onClick={() => setShowAuthModal(true)}
                     size="sm"
-                    className="w-100 w-lg-auto"
+                    className="w-100 w-lg-auto tropical-button"
                   >
                     Ingresar
                   </Button>

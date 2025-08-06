@@ -1,0 +1,19 @@
+@font-face {
+    font-family: 'Montserrat Alternates';
+    src: url('/tropical tcg/identidad tropical_Carpeta/Fonts/MontserratAlternates-Black.otf') format('opentype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+/* Clase para títulos */
+.tropical-title {
+    font-family: 'Montserrat Alternates', sans-serif;
+    font-weight: 900;
+}
+
+/* Clase para botones */
+.tropical-button {
+    font-family: 'Montserrat Alternates', sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+}

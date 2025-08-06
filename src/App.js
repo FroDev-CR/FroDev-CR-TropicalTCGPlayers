@@ -12,6 +12,7 @@ import Cart from './pages/Cart';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/main.css';
 import './styles/marketplace.css';
+import './styles/fonts.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { Toaster } from 'react-hot-toast';
 import BinderView from './pages/BinderView';
