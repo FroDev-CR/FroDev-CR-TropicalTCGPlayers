@@ -1,15 +1,58 @@
-/* Importar Montserrat Alternates desde Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat+Alternates:wght@400;700;900&display=swap');
+/* Importar Montserrat desde Google Fonts con todos los pesos necesarios */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Montserrat+Alternates:wght@400;700;900&display=swap');
 
-/* Clase para títulos */
-.tropical-title {
-    font-family: 'Montserrat Alternates', sans-serif;
-    font-weight: 900;
+/* Clase para títulos principales usando Montserrat Bold de Google Fonts */
+.tropical-title, 
+.section-title,
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 700 !important;
 }
 
-/* Clase para botones */
+/* Clase para botones usando la misma fuente que navbar */
 .tropical-button {
     font-family: 'Montserrat Alternates', sans-serif;
     font-weight: 900;
     text-transform: uppercase;
+}
+
+/* Estilo para todos los botones del body igual que navbar */
+.btn:not(.navbar .btn):not(.modal .btn):not(.alert .btn) {
+    font-family: 'Montserrat Alternates', sans-serif !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    border: 2px solid white !important;
+    background: transparent !important;
+    color: white !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn:not(.navbar .btn):not(.modal .btn):not(.alert .btn):hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.8) !important;
+    color: white !important;
+}
+
+/* Excepciones para botones específicos que deben mantener su estilo original */
+.btn-success,
+.btn-primary, 
+.btn-danger,
+.btn-warning,
+.btn-info,
+.btn-dark,
+.btn-secondary,
+.card .btn,
+.marketplace .btn,
+.featured-sections .btn,
+.pagination .btn {
+    font-family: 'Montserrat Alternates', sans-serif !important;
+    font-weight: 700 !important;
+    text-transform: none !important;
+    border: 2px solid transparent !important;
+}
+
+.btn-outline-light {
+    border: 2px solid white !important;
+    background: transparent !important;
+    color: white !important;
 }

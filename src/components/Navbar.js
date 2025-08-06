@@ -14,6 +14,8 @@ const CustomNavbar = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [navbarVisible, setNavbarVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const location = useLocation();
 
   useEffect(() => {
@@ -28,6 +30,47 @@ const CustomNavbar = () => {
   useEffect(() => {
     setExpanded(false);
   }, [location]);
+
+  // Manejo del scroll para ocultar/mostrar navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Solo ocultar si se ha hecho scroll hacia abajo más de 100px
+      if (currentScrollY > 100) {
+        if (currentScrollY > lastScrollY && navbarVisible) {
+          // Scrolling down
+          setNavbarVisible(false);
+        } else if (currentScrollY < lastScrollY && !navbarVisible) {
+          // Scrolling up
+          setNavbarVisible(true);
+        }
+      } else {
+        // Si estamos cerca del top, siempre mostrar
+        setNavbarVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    // Throttle scroll event
+    let ticking = false;
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', throttledHandleScroll);
+    };
+  }, [lastScrollY, navbarVisible]);
 
   const handleLogout = async () => {
     try {
@@ -48,7 +91,7 @@ const CustomNavbar = () => {
         variant="dark" 
         expand="lg" 
         fixed="top" 
-        className="py-2 py-lg-3 shadow-sm custom-navbar"
+        className={`py-2 py-lg-3 shadow-sm custom-navbar ${navbarVisible ? 'navbar-visible' : 'navbar-hidden'}`}
         expanded={expanded}
         onToggle={(expanded) => setExpanded(expanded)}
       >
