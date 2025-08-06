@@ -24,28 +24,7 @@ export default function CardDetailModal({ show, onHide, card }) {
   const [sellers, setSellers] = useState([]);
   const [loadingSellers, setLoadingSellers] = useState(false);
   const [sellersError, setSellersError] = useState('');
-  const [imageZoomed, setImageZoomed] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { addToCart, user } = useCart();
-
-  // Funciones para el zoom de imagen
-  const handleMouseEnter = () => {
-    setImageZoomed(true);
-  };
-
-  const handleMouseLeave = () => {
-    setImageZoomed(false);
-    setMousePosition({ x: 0, y: 0 });
-  };
-
-  const handleMouseMove = (e) => {
-    if (!imageZoomed) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setMousePosition({ x, y });
-  };
 
   // Cargar favoritos del localStorage
   useEffect(() => {
@@ -194,7 +173,11 @@ export default function CardDetailModal({ show, onHide, card }) {
               <Row className="g-2">
                 <Col xs={6}>
                   <small className="text-muted">Set:</small>
-                  <div>{typeof card.set === 'object' ? (card.set?.name || 'Desconocido') : String(card.set || 'Desconocido')}</div>
+                  <div>{
+                    typeof card.set === 'object' 
+                      ? (card.set?.name + (card.set?.series ? `, ${card.set.series}` : '')) || 'Desconocido'
+                      : String(card.set || 'Desconocido')
+                  }</div>
                 </Col>
                 <Col xs={6}>
                   <small className="text-muted">Rareza:</small>
@@ -538,12 +521,8 @@ export default function CardDetailModal({ show, onHide, card }) {
                   overflow: 'hidden',
                   borderRadius: '15px',
                   border: '3px solid rgba(255,255,255,0.4)',
-                  cursor: 'zoom-in',
                   boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
                 }}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                onMouseMove={handleMouseMove}
               >
                 <img 
                   src={card.images?.large || card.images?.small || '/placeholder-card.png'}
@@ -552,29 +531,12 @@ export default function CardDetailModal({ show, onHide, card }) {
                   style={{ 
                     width: '100%', 
                     height: '100%', 
-                    objectFit: 'contain',
-                    transition: 'transform 0.3s ease',
-                    transform: imageZoomed ? `scale(2) translate(-${(mousePosition.x - 50)}%, -${(mousePosition.y - 50)}%)` : 'scale(1)',
-                    transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
+                    objectFit: 'contain'
                   }}
                   onError={(e) => {
                     e.target.src = '/placeholder-card.png';
                   }}
                 />
-                {imageZoomed && (
-                  <div 
-                    className="position-absolute top-0 end-0 m-2 px-2 py-1 rounded"
-                    style={{
-                      background: 'rgba(0,0,0,0.8)',
-                      color: 'white',
-                      fontSize: '0.8rem',
-                      zIndex: 10,
-                      backdropFilter: 'blur(5px)'
-                    }}
-                  >
-                    🔍 Zoom activo
-                  </div>
-                )}
               </div>
               
               <Button
@@ -605,7 +567,11 @@ export default function CardDetailModal({ show, onHide, card }) {
                   <Badge bg="secondary">{card.rarity || 'Sin rareza'}</Badge>
                 </div>
                 <p className="mb-3" style={{ color: 'rgba(255,255,255,0.9)', textShadow: '1px 1px 2px rgba(0,0,0,0.7)' }}>
-                  {typeof card.set === 'object' ? (card.set?.name || 'Set desconocido') : String(card.set || 'Set desconocido')}
+                  {
+                    typeof card.set === 'object' 
+                      ? (card.set?.name + (card.set?.series ? `, ${card.set.series}` : '')) || 'Set desconocido'
+                      : String(card.set || 'Set desconocido')
+                  }
                 </p>
               </div>
 
