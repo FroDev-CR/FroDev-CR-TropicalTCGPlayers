@@ -1,356 +1,194 @@
-# 📋 CONTEXTO DEL PROYECTO - TropicalTCGPlayers
+# Context.md - Tropical TCG Players
 
-## 🎯 **Estado Actual del Proyecto**
+## ¿Qué es Tropical TCG Players?
 
-### **Completado ✅**
-- **Sistema de Reputación Robusto** (Prioridad 2)
-- **Sistema de Checkout Mejorado** (Prioridad 3.1)
-- **Gestión de Inventario en Tiempo Real** (Prioridad 3.2)
+Tropical TCG Players es una **plataforma web integral para jugadores locales de Trading Card Games (TCG)** que busca conectar a la comunidad de coleccionistas y jugadores de cartas, proporcionando herramientas esenciales para el comercio, organización de eventos y gestión de colecciones.
 
-### **En Progreso 🔄**
-- **Dashboard de Vendedor con Estadísticas** (Prioridad 3.3)
+## Propósito y Objetivos
 
-### **Pendiente ⏳**
-- **Sistema de Reservas Temporales** (Prioridad 3.4)
-- **Mejoras de UX/UI** (Prioridad 4)
-- **Funcionalidades Avanzadas** (Prioridad 5)
-- **Seguridad** (Prioridad 6 - para producción)
+### Objetivo Principal
+Crear un ecosistema completo para la comunidad local de TCG que permita:
+- **Comprar y vender cartas** de manera segura entre jugadores locales
+- **Organizar y participar en eventos** de la comunidad
+- **Gestionar colecciones personales** a través de binders digitales
+- **Conectar jugadores** con intereses similares y facilitar el intercambio
 
----
+### Público Objetivo
+- Jugadores locales de TCG (Pokémon, One Piece, Dragon Ball, Magic, etc.)
+- Coleccionistas de cartas
+- Organizadores de eventos y torneos
+- Tiendas locales de cartas
 
-## 🏗️ **Arquitectura Implementada**
+## Funcionalidades Principales
 
-### **Componentes Nuevos Creados:**
+### 🛒 **Marketplace Especializado**
+- **Búsqueda específica por TCG**: Pokémon, One Piece, Dragon Ball, Digimon, Magic: The Gathering, Union Arena, Gundam
+- **Integración con APIs oficiales**: Conecta con APIs externas para datos actualizados de cartas
+- **Vendedores locales**: Sistema completo para que usuarios vendan sus cartas
+- **Sistema de carrito**: Compra múltiple con gestión de inventario
+- **Filtros avanzados**: Por rareza, condición, precio, tipo, etc.
+- **Comparación de precios**: Entre vendedores locales y referencias de mercado
+
+### 📅 **Sistema de Eventos**
+- **Calendario interactivo**: Visualización de eventos de la comunidad
+- **Panel de administración**: Para organizadores gestionen eventos
+- **Gestión completa**: Creación, edición y seguimiento de eventos
+- **Participación**: Los usuarios pueden registrarse y participar
+
+### 📁 **Sistema de Binders (Colecciones)**
+- **Binders personalizables**: Diferentes tipos (3x3, 4x4, 2x2, Jumbo) y estilos visuales
+- **Gestión de colecciones**: Agregar, organizar y mostrar cartas
+- **Límite de 4 binders**: Para mantener la plataforma organizada
+- **Visualización atractiva**: Diferentes temas de color para personalización
+
+### 👤 **Sistema de Usuarios y Calificaciones**
+- **Autenticación completa**: Con Firebase Auth
+- **Perfiles de usuario**: Con información, historial y calificaciones
+- **Sistema de ratings**: Para vendedores y compradores
+- **Historial de transacciones**: Seguimiento de compras y ventas
+
+## Stack Tecnológico
+
+### Frontend
+- **React 18**: Framework principal con hooks modernos
+- **Create React App**: Para configuración y build
+- **React Router DOM 7**: Navegación SPA
+- **Bootstrap 5.3**: Framework CSS para diseño responsivo
+- **React Bootstrap**: Componentes Bootstrap para React
+- **Framer Motion**: Animaciones y transiciones suaves
+
+### Backend y Base de Datos
+- **Firebase**: Plataforma backend completa
+  - **Firestore**: Base de datos NoSQL para datos en tiempo real
+  - **Firebase Auth**: Autenticación de usuarios
+  - **Firebase Storage**: Almacenamiento de archivos
+  - **Firebase Hosting**: Para deployments
+
+### Librerías y Herramientas
+- **React Icons**: Iconografía consistente
+- **React Hot Toast**: Notificaciones elegantes
+- **React Rating Stars**: Sistema de calificaciones
+- **React Calendar**: Componentes de calendario
+- **Date-fns & Moment**: Manipulación de fechas
+- **React Draggable**: Funcionalidades drag & drop
+
+### APIs Externas
+- **Pokémon TCG API**: Datos oficiales de cartas Pokémon
+- **TCGAPIS.com**: APIs para One Piece, Dragon Ball, Digimon, Magic, Union Arena, Gundam
+- **Proxy personalizado**: Para manejar CORS y centralizar requests
+
+### Deployment y Hosting
+- **Vercel**: Hosting principal con CI/CD automático
+- **Variables de entorno**: Configuración segura de API keys
+
+## Arquitectura del Proyecto
+
+### Estructura de Carpetas
 ```
 src/
-├── components/
-│   ├── RatingSystem.js ✅ - Sistema de calificaciones validado
-│   └── ReportSystem.js ✅ - Sistema de reportes de usuarios
-├── pages/
-│   └── Transactions.js ✅ - Página de gestión de transacciones
-└── hooks/
-    └── useInventory.js ✅ - Hook para gestión de inventario
+├── components/          # Componentes reutilizables
+├── contexts/           # Context APIs (CarritoContext)
+├── hooks/              # Custom hooks
+├── pages/              # Páginas principales
+├── services/           # Servicios (APIs, utilidades)
+├── styles/             # Estilos CSS globales
+└── assets/             # Recursos estáticos
 ```
 
-### **Componentes Modificados:**
+### Componentes Clave
+- **Navbar**: Navegación principal con autenticación
+- **Marketplace**: Motor de búsqueda y listado de cartas
+- **CardDetailModal**: Vista detallada de cartas con vendedores
+- **SellCardModal**: Interface para vender cartas
+- **EventCalendar**: Calendario interactivo de eventos
+- **AuthModal**: Sistema de login/registro
+- **RatingSystem**: Calificaciones de usuarios
+
+### Gestión de Estado
+- **Context API**: Para estado global (carrito, usuario)
+- **Local Storage**: Persistencia temporal
+- **Firebase**: Estado persistente en la nube
+- **useState/useEffect**: Estado local de componentes
+
+## Características Técnicas Destacadas
+
+### 🔍 **Búsqueda Inteligente**
+- Búsqueda específica por TCG con debouncing
+- Normalización de datos de múltiples APIs
+- Cache inteligente para mejorar rendimiento
+- Fallbacks a datos mock cuando las APIs fallan
+- Paginación eficiente
+
+### 🛡️ **Seguridad**
+- Autenticación robusta con Firebase
+- Validación de permisos en frontend y backend
+- Variables de entorno para API keys
+- Sanitización de datos de entrada
+
+### 📱 **Experiencia de Usuario**
+- **Responsive Design**: Funciona en móviles, tablets y desktop
+- **Progressive Enhancement**: Funcionalidades que mejoran gradualmente
+- **Loading States**: Spinners y estados de carga elegantes
+- **Error Handling**: Manejo graceful de errores con fallbacks
+
+### ⚡ **Performance**
+- **Code Splitting**: Carga optimizada de componentes
+- **Image Optimization**: Manejo eficiente de imágenes de cartas
+- **API Caching**: Cache inteligente con timeouts
+- **Debounced Search**: Búsquedas optimizadas
+
+## Estado Actual del Proyecto
+
+### ✅ **Funcionalidades Completadas**
+- Marketplace completamente funcional con búsqueda especializada
+- Sistema de usuarios y autenticación
+- Sistema de eventos con panel administrativo
+- Sistema de binders para colecciones
+- Sistema de carrito y transacciones
+- Integración completa con APIs de TCG
+- Interface responsive y moderna
+
+### 🚧 **En Desarrollo/Mejoras Pendientes**
+- Optimizaciones para producción en el marketplace
+- Sistema de calificaciones más robusto
+- Mejoras en el sistema de reportes
+- Funcionalidades adicionales de filtrado
+- Integración con métodos de pago
+
+### 🎯 **Próximos Pasos**
+El proyecto está en fase avanzada de desarrollo, con el marketplace siendo la funcionalidad principal que necesita optimización para el lanzamiento público. La aplicación está lista para ser desplegada y usada por la comunidad local de TCG.
+
+## Configuración de Desarrollo
+
+### Variables de Entorno Requeridas
 ```
-src/
-├── App.js ✅ - Nueva ruta /transacciones
-├── components/
-│   ├── Navbar.js ✅ - Enlace a transacciones
-│   └── SellCardModal.js ✅ - Campo availableQuantity
-├── contexts/
-│   └── CartContext.js ✅ - Inventario + transacciones mejoradas
-└── pages/
-    ├── Cart.js ✅ - Checkout modal con múltiples contactos
-    └── Marketplace.js ✅ - Sistema de inventario + reportes
-```
-
----
-
-## 🎯 **Sistema de Prioridades Establecido**
-
-### **PRIORIDAD 1 - Seguridad (Para Producción)**
-- [ ] Mover API keys a variables de entorno
-- [ ] Implementar validación de permisos en Firestore
-- [ ] Sanitizar todas las entradas de usuario
-
-### **PRIORIDAD 2 - Sistema de Reputación ✅ COMPLETADO**
-- [x] Solo usuarios que compraron pueden calificar
-- [x] Una calificación por transacción
-- [x] Sistema de reportes de usuarios
-- [x] Historial de transacciones para validación
-- [x] UI mejorada del sistema de rating
-
-### **PRIORIDAD 3 - Mejoras del Marketplace**
-
-#### **3.1 Sistema de Checkout Mejorado ✅ COMPLETADO**
-- [x] Modal de checkout elegante
-- [x] Múltiples formas de contacto (WhatsApp, Email, Teléfono)
-- [x] Campo de notas personalizadas
-- [x] Mensajes automáticos con ID de transacción
-
-#### **3.2 Gestión de Inventario ✅ COMPLETADO**
-- [x] Control de stock en tiempo real
-- [x] Badges visuales de disponibilidad
-- [x] Verificación antes de agregar al carrito
-- [x] Filtros de productos agotados
-- [x] Transacciones atómicas
-
-#### **3.3 Dashboard de Vendedor 🔄 EN PROGRESO**
-```
-Tareas Pendientes:
-- [ ] Crear página Dashboard (/dashboard)
-- [ ] Estadísticas de ventas (ingresos, productos vendidos)
-- [ ] Gestión de listings (editar, desactivar, stock)
-- [ ] Análisis de rendimiento por período
-- [ ] Vista de transacciones del vendedor
-- [ ] Gráficos con Chart.js o similar
-```
-
-#### **3.4 Sistema de Reservas Temporales**
-```
-Tareas Pendientes:
-- [ ] Reserva temporal al agregar al carrito (15 min)
-- [ ] Sistema de expiración automática
-- [ ] Notificaciones de reservas por expirar
-- [ ] Liberación automática de stock
-```
-
-### **PRIORIDAD 4 - Experiencia de Usuario**
-- [ ] Búsqueda unificada (múltiples APIs de TCG)
-- [ ] Sistema de favoritos persistente
-- [ ] Notificaciones push
-- [ ] Chat interno básico
-- [ ] Modo oscuro
-
-### **PRIORIDAD 5 - Funcionalidades Avanzadas**
-- [ ] Integración con múltiples APIs de TCG
-- [ ] Sistema de subastas
-- [ ] Verificación de autenticidad de cartas
-- [ ] Analytics para vendedores
-
----
-
-## 🔧 **Funcionalidades Implementadas**
-
-### **Sistema de Transacciones**
-```javascript
-Estados: initiated -> contacted -> completed -> rated
-Colecciones Firestore:
-- transactions: Historial completo de compras/ventas
-- ratings: Calificaciones validadas por transacción
-- reports: Sistema de reportes de usuarios
+REACT_APP_FIREBASE_API_KEY=
+REACT_APP_FIREBASE_AUTH_DOMAIN=
+REACT_APP_FIREBASE_PROJECT_ID=
+REACT_APP_FIREBASE_STORAGE_BUCKET=
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=
+REACT_APP_FIREBASE_APP_ID=
+REACT_APP_FIREBASE_MEASUREMENT_ID=
+REACT_APP_POKEMON_API_KEY=
+REACT_APP_TCG_API_KEY=
 ```
 
-### **Sistema de Inventario**
-```javascript
-Campos en listings:
-- quantity: Cantidad original
-- availableQuantity: Stock actual disponible
-- status: 'active' | 'sold_out' | 'inactive'
-
-Funciones del contexto:
-- checkListingAvailability()
-- reduceListingQuantity()
-- addToCart() con validación
-```
-
-### **Sistema de Checkout**
-```javascript
-Métodos de contacto:
-- whatsapp: Abre enlaces de WhatsApp
-- email: Abre ventanas de email
-- phone: Muestra información de contacto
-
-Campos adicionales:
-- buyerNotes: Notas personalizadas
-- contactMethod: Método preferido
-```
-
----
-
-## 📊 **Estructura de Datos Firestore**
-
-### **Colección: transactions**
-```javascript
-{
-  id: "auto-generated",
-  buyerId: "user-uid",
-  buyerName: "Username",
-  buyerNotes: "Notas opcionales",
-  items: [{
-    listingId: "listing-id",
-    cardId: "pokemon-card-id",
-    cardName: "Charizard ex",
-    sellerId: "seller-uid",
-    price: 25.00,
-    quantity: 1,
-    condition: "NM"
-  }],
-  totalAmount: 25.00,
-  contactMethod: "whatsapp",
-  status: "initiated", // initiated -> contacted -> completed -> rated
-  createdAt: Timestamp,
-  updatedAt: Timestamp
-}
-```
-
-### **Colección: ratings**
-```javascript
-{
-  raterId: "user-uid",
-  ratedUserId: "seller-uid",
-  transactionId: "transaction-id",
-  rating: 5,
-  comment: "Excelente vendedor",
-  type: "seller_rating",
-  createdAt: Timestamp
-}
-```
-
-### **Colección: reports**
-```javascript
-{
-  reporterId: "user-uid",
-  reportedUserId: "reported-uid",
-  listingId: "listing-id", // opcional
-  reason: "fake_listing",
-  description: "Descripción detallada",
-  status: "pending", // pending -> under_review -> resolved -> dismissed
-  createdAt: Timestamp
-}
-```
-
-### **Colección: listings (actualizada)**
-```javascript
-{
-  // Campos existentes...
-  quantity: 3, // Cantidad original
-  availableQuantity: 2, // Stock disponible actual
-  status: "active", // active | sold_out | inactive
-  // Campos nuevos agregados automáticamente
-}
-```
-
----
-
-## 🚀 **Próximos Pasos Recomendados**
-
-### **Immediate (Dashboard de Vendedor)**
-1. **Crear página Dashboard** (`/dashboard`)
-   ```bash
-   src/pages/Dashboard.js
-   ```
-
-2. **Agregar ruta en App.js**
-   ```javascript
-   <Route path="/dashboard" element={<Dashboard />} />
-   ```
-
-3. **Agregar enlace en Navbar** (solo para usuarios con listings)
-
-4. **Implementar estadísticas básicas:**
-   - Total de listings activos
-   - Ingresos del mes/total
-   - Transacciones completadas
-   - Rating promedio
-
-### **Components Necesarios para Dashboard:**
-```
-src/components/dashboard/
-├── StatsCards.js - Tarjetas de estadísticas
-├── SalesChart.js - Gráfico de ventas
-├── ListingsTable.js - Tabla de gestión de listings
-└── TransactionsTable.js - Tabla de transacciones
-```
-
----
-
-## 🛠️ **Comandos Útiles**
-
-### **Desarrollo:**
+### Comandos Principales
 ```bash
-npm start                 # Iniciar servidor de desarrollo
-npm run build            # Build para producción
-npm test                 # Ejecutar tests
+npm start          # Servidor de desarrollo
+npm run build      # Build para producción  
+npm test           # Tests unitarios
 ```
 
-### **Git:**
-```bash
-git add .
-git commit -m "feat: implementar dashboard de vendedor 🤖 Generated with Claude Code"
-git push
-```
+## Valor de la Plataforma
 
----
+Tropical TCG Players no es solo una aplicación de compra-venta, es un **hub completo para la comunidad TCG local** que:
 
-## 📱 **Rutas Implementadas**
+- **Reduce la fragmentación** del mercado local de cartas
+- **Facilita el discovery** de eventos y actividades
+- **Proporciona herramientas profesionales** para gestión de colecciones
+- **Crea confianza** a través del sistema de ratings
+- **Centraliza la información** relevante para jugadores
+- **Fomenta la comunidad** local de TCG
 
-```javascript
-/ - Home
-/catalogo - Catálogo de cartas
-/marketplace - Marketplace principal ✅
-/perfil - Perfil de usuario ✅
-/transacciones - Gestión de transacciones ✅
-/binders - Gestión de binders
-/binder/:id - Vista de binder específico
-/carrito - Carrito de compras ✅
-/crear-listado - Crear nuevo listing
-/admin - Panel de administración
-/live - Página en vivo
-
-// Pendientes:
-/dashboard - Dashboard de vendedor 🔄
-```
-
----
-
-## 🎨 **Estilos y UI**
-
-### **Componentes de Bootstrap Utilizados:**
-- Modal, Button, Form, Alert, Card, Badge
-- Container, Row, Col, Spinner, Toast
-- Pagination, Dropdown, Nav, Navbar
-
-### **Iconos (react-icons):**
-- FaShoppingCart, FaWhatsapp, FaEnvelope, FaPhone
-- FaStar, FaFlag, FaCheckCircle, FaExchangeAlt
-- FaCreditCard, FaStore, FaEye, FaClock
-
----
-
-## 🔍 **Testing y Debugging**
-
-### **Puntos Críticos a Probar:**
-1. **Sistema de Inventario:**
-   - Agregar cartas al carrito
-   - Verificar límites de stock
-   - Productos agotados no se pueden agregar
-
-2. **Sistema de Checkout:**
-   - Modal de checkout con diferentes métodos
-   - Creación de transacciones
-   - Enlaces de WhatsApp/Email funcionando
-
-3. **Sistema de Rating
-   - Solo usuarios con transacciones pueden calificar
-   - Una calificación por transacción
-   - Actualización de rating promedio
-
-### **Posibles Errores Conocidos:**
-- ESLint: Variables no definidas en scope
-- Firebase: Permisos de lectura/escritura
-- React: Keys únicas en listas
-
----
-
-## 📝 **Notas de Desarrollo**
-
-### **Patrones Establecidos:**
-- Context para estado global (CartContext)
-- Hooks personalizados para lógica reutilizable
-- Componentes funcionales con hooks
-- Firebase/Firestore para backend
-- Bootstrap para UI/UX
-
-### **Convenciones de Código:**
-- Nombres en español para UI
-- camelCase para variables
-- PascalCase para componentes
-- Comentarios explicativos en funciones complejas
-
-### **Estructura de Commits:**
-```
-feat: nueva funcionalidad
-fix: corrección de bugs  
-refactor: refactorización
-docs: documentación
-style: cambios de estilo
-```
-
----
-
-**📅 Última Actualización:** 2025-01-03
-**👨‍💻 Desarrollado con:** Claude Code
-**🎯 Próximo Objetivo:** Dashboard de Vendedor con Estadísticas
+La plataforma está diseñada para ser escalable y adaptarse a diferentes mercados locales, siendo Costa Rica el mercado piloto inicial.
