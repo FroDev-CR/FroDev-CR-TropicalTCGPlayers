@@ -721,7 +721,7 @@ export default function SellCardModal({ show, handleClose }) {
                           />
                           <div className="flex-grow-1">
                             <div className="fw-bold small line-clamp-2">{card.name}</div>
-                            <div className="text-muted small">{card.set?.name || card.set || 'Desconocido'}</div>
+                            <div className="text-muted small">{typeof card.set === 'object' ? (card.set.name || 'Set desconocido') : (card.set || 'Set desconocido')}</div>
                             <div className="text-muted small">{card.rarity || 'Sin rareza'}</div>
                           </div>
                         </div>
@@ -770,7 +770,7 @@ export default function SellCardModal({ show, handleClose }) {
                     />
                     <div className="flex-grow-1">
                       <h6 className="mb-1">{selectedCard.name}</h6>
-                      <p className="text-muted small mb-0">{selectedCard.set?.name || selectedCard.set || 'Desconocido'}</p>
+                      <p className="text-muted small mb-0">{typeof selectedCard.set === 'object' ? (selectedCard.set.name || 'Set desconocido') : (selectedCard.set || 'Set desconocido')}</p>
                       <div className="d-flex gap-2 mt-1">
                         <Badge bg={TCG_CONFIGS[activeTab].color}>{TCG_CONFIGS[activeTab].name}</Badge>
                         <Badge bg="secondary">{selectedCard.rarity || 'Sin rareza'}</Badge>

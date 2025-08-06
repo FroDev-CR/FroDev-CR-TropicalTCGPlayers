@@ -94,7 +94,8 @@ export default function BinderView() {
   const filteredCards = binder?.cards?.filter(card => {
     const matchesName = !searchTerm || card.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = !filterType || card.types?.includes(filterType);
-    const matchesSet = !filterSet || card.set.name === filterSet;
+    const setName = typeof card.set === 'object' ? card.set.name : card.set;
+    const matchesSet = !filterSet || setName === filterSet;
     return matchesName && matchesType && matchesSet;
   }) || [];
   const ref = useRef(null);
@@ -118,7 +119,7 @@ export default function BinderView() {
   
   const paginatedCards = filteredCards.slice((page - 1) * cardsPerPage, page * cardsPerPage);
   const typesList = [...new Set(binder?.cards?.flatMap(c => c.types || []))];
-  const setsList = [...new Set(binder?.cards?.map(c => c.set.name))];
+  const setsList = [...new Set(binder?.cards?.map(c => typeof c.set === 'object' ? c.set.name : c.set))].filter(Boolean);
 
   if (loading) {
     return (

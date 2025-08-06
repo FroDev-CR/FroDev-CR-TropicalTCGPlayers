@@ -470,8 +470,7 @@ export default function Marketplace() {
         {/* Header del Marketplace */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
           <div className="mb-3 mb-md-0">
-            <h2 className="section-title mb-2">🎯 Marketplace TCG Especializado</h2>
-            <p className="text-muted mb-0">Selecciona tu TCG favorito y busca cartas específicas. Conectamos con APIs oficiales y vendedores locales.</p>
+            <h2 className="section-title mb-2">🎯 Marketplace TCG</h2>
             {selectedTCG && (
               <div className="mt-2">
                 <span className="badge bg-primary fs-6">
@@ -592,7 +591,7 @@ export default function Marketplace() {
                 <span className="ms-2">
                   {searchError.includes('demostración') ? 
                     '🎭 Datos de demostración' : 
-                    '📡 Datos de APIs externas + vendedores locales'
+                    '📡'
                   }
                 </span>
               </div>

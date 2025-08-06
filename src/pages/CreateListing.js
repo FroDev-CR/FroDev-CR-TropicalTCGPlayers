@@ -99,7 +99,7 @@ export default function CreateListing() {
                 <Card.Body>
                   <Card.Title>{card.name}</Card.Title>
                   <Card.Text>
-                    {card.set.name} - {card.rarity}
+                    {typeof card.set === 'object' ? (card.set.name || 'Set desconocido') : (card.set || 'Set desconocido')} - {card.rarity}
                   </Card.Text>
                 </Card.Body>
               </Card>

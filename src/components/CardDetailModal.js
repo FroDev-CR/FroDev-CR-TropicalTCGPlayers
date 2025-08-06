@@ -30,13 +30,13 @@ export default function CardDetailModal({ show, onHide, card }) {
   const formatSetInfo = (set) => {
     if (!set) return 'Set desconocido';
     
-    // Si es un string simple, devolverlo directamente
+    // Si ya es un string simple, devolverlo directamente
     if (typeof set === 'string') {
       return set;
     }
     
     // Si es un objeto, extraer la información relevante
-    if (typeof set === 'object') {
+    if (typeof set === 'object' && set !== null) {
       const name = set.name || '';
       const series = set.series || '';
       
@@ -51,7 +51,8 @@ export default function CardDetailModal({ show, onHide, card }) {
       }
     }
     
-    return 'Set desconocido';
+    // Fallback - convertir cualquier cosa a string
+    return String(set);
   };
 
   // Función utilitaria para formatear cualquier campo que pueda ser un objeto
