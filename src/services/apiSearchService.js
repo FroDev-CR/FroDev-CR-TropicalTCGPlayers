@@ -470,7 +470,18 @@ class APISearchService {
     // Función helper para convertir valores a string seguro
     const safeString = (value) => {
       if (value === null || value === undefined) return '';
-      if (typeof value === 'object') return JSON.stringify(value);
+      if (typeof value === 'object') {
+        // Para objetos set, extraer name y series
+        if (value.name) {
+          const name = value.name || '';
+          const series = value.series || '';
+          if (name && series) return `${name}, ${series}`;
+          else if (name) return name;
+          else return 'Desconocido';
+        }
+        // Para otros objetos, convertir a JSON como fallback
+        return JSON.stringify(value);
+      }
       return String(value);
     };
 

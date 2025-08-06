@@ -197,7 +197,7 @@ export default function Marketplace() {
         selectedTcg,
         sanitizedTerm, 
         page, 
-        pageSize
+        Math.max(pageSize, 50) // Aumentar minídmo a 50 cartas
       );
       
       // Buscar vendedores locales en paralelo
@@ -338,8 +338,8 @@ export default function Marketplace() {
     setSearchError('');
     
     try {
-      // Búsqueda específica en el TCG seleccionado + vendedores locales
-      const searchResults = await searchCardsUnified(term, selectedTCG, page, 12);
+      // Búsqueda específica en el TCG seleccionado + vendedores locales  
+      const searchResults = await searchCardsUnified(term, selectedTCG, page, 48); // Aumentar a 48 cartas por página
       
       // Procesar cartas y calcular precios de vendedores
       const processedCards = searchResults.cards.map(card => {
@@ -368,7 +368,7 @@ export default function Marketplace() {
 
       setCards(finalCards);
       setTotalResults(searchResults.totalResults);
-      setTotalPages(searchResults.totalPages || Math.ceil(finalCards.length / 12));
+      setTotalPages(searchResults.totalPages || Math.ceil(finalCards.length / 48));
       setCurrentPage(page);
 
       // Mostrar información sobre el estado de los datos
@@ -604,7 +604,7 @@ export default function Marketplace() {
           {totalResults > 0 && (
             <div className="d-flex justify-content-between align-items-center">
               <div className="text-muted small">
-                <strong>Cartas encontradas:</strong> Mostrando {(currentPage - 1) * 12 + 1} - {Math.min(currentPage * 12, cards.length)} de {totalResults} resultados
+                <strong>Cartas encontradas:</strong> Mostrando {(currentPage - 1) * 48 + 1} - {Math.min(currentPage * 48, cards.length)} de {totalResults} resultados
                 <span className="ms-2">
                   {searchError.includes('demostración') ? 
                     '🎭 Datos de demostración' : 
