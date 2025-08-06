@@ -26,6 +26,58 @@ export default function CardDetailModal({ show, onHide, card }) {
   const [sellersError, setSellersError] = useState('');
   const { addToCart, user } = useCart();
 
+  // Función para formatear información del set
+  const formatSetInfo = (set) => {
+    if (!set) return 'Set desconocido';
+    
+    // Si es un string simple, devolverlo directamente
+    if (typeof set === 'string') {
+      return set;
+    }
+    
+    // Si es un objeto, extraer la información relevante
+    if (typeof set === 'object') {
+      const name = set.name || '';
+      const series = set.series || '';
+      
+      if (name && series) {
+        return `${name}, ${series}`;
+      } else if (name) {
+        return name;
+      } else if (series) {
+        return series;
+      } else {
+        return 'Set desconocido';
+      }
+    }
+    
+    return 'Set desconocido';
+  };
+
+  // Función utilitaria para formatear cualquier campo que pueda ser un objeto
+  const formatCardField = (field, fallback = 'N/A') => {
+    if (!field) return fallback;
+    
+    if (typeof field === 'string' || typeof field === 'number') {
+      return String(field);
+    }
+    
+    if (typeof field === 'object') {
+      // Si tiene propiedad 'name', usarla
+      if (field.name) {
+        return String(field.name);
+      }
+      // Si es un array, unir con comas
+      if (Array.isArray(field)) {
+        return field.map(item => typeof item === 'object' ? (item.name || String(item)) : String(item)).join(', ');
+      }
+      // Si es un objeto simple, intentar extraer información útil
+      return fallback;
+    }
+    
+    return String(field);
+  };
+
   // Cargar favoritos del localStorage
   useEffect(() => {
     const savedFavorites = localStorage.getItem('favorites');
@@ -173,11 +225,7 @@ export default function CardDetailModal({ show, onHide, card }) {
               <Row className="g-2">
                 <Col xs={6}>
                   <small className="text-muted">Set:</small>
-                  <div>{
-                    typeof card.set === 'object' 
-                      ? (card.set?.name + (card.set?.series ? `, ${card.set.series}` : '')) || 'Desconocido'
-                      : String(card.set || 'Desconocido')
-                  }</div>
+                  <div>{formatSetInfo(card.set)}</div>
                 </Col>
                 <Col xs={6}>
                   <small className="text-muted">Rareza:</small>
@@ -239,7 +287,7 @@ export default function CardDetailModal({ show, onHide, card }) {
                           <div>
                             {card.types.map((type, index) => (
                               <Badge key={index} bg="light" text="dark" className="me-1">
-                                {typeof type === 'object' ? JSON.stringify(type) : String(type)}
+                                {formatCardField(type)}
                               </Badge>
                             ))}
                           </div>
@@ -254,9 +302,9 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <h6 className="text-muted mb-2">Ataques</h6>
                     {card.attacks.slice(0, 2).map((attack, index) => (
                       <div key={index} className="border rounded p-2 mb-2">
-                        <div className="fw-bold">{typeof attack === 'object' ? String(attack.name || attack) : String(attack)}</div>
-                        {typeof attack === 'object' && attack.damage && <div className="text-end fw-bold">{String(attack.damage)}</div>}
-                        {typeof attack === 'object' && attack.text && <small className="text-muted">{String(attack.text)}</small>}
+                        <div className="fw-bold">{formatCardField(attack, attack.name || 'Ataque')}</div>
+                        {typeof attack === 'object' && attack.damage && <div className="text-end fw-bold">{attack.damage}</div>}
+                        {typeof attack === 'object' && attack.text && <small className="text-muted">{attack.text}</small>}
                       </div>
                     ))}
                   </div>
@@ -267,8 +315,8 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <h6 className="text-muted mb-2">Habilidades</h6>
                     {card.abilities.map((ability, index) => (
                       <div key={index} className="border rounded p-2 mb-2">
-                        <div className="fw-bold">{typeof ability === 'object' ? String(ability.name || ability) : String(ability)}</div>
-                        <small className="text-muted">{typeof ability === 'object' ? String(ability.text || '') : ''}</small>
+                        <div className="fw-bold">{formatCardField(ability, ability.name || 'Habilidad')}</div>
+                        <small className="text-muted">{typeof ability === 'object' && ability.text ? ability.text : ''}</small>
                       </div>
                     ))}
                   </div>
@@ -567,11 +615,7 @@ export default function CardDetailModal({ show, onHide, card }) {
                   <Badge bg="secondary">{card.rarity || 'Sin rareza'}</Badge>
                 </div>
                 <p className="mb-3" style={{ color: 'rgba(255,255,255,0.9)', textShadow: '1px 1px 2px rgba(0,0,0,0.7)' }}>
-                  {
-                    typeof card.set === 'object' 
-                      ? (card.set?.name + (card.set?.series ? `, ${card.set.series}` : '')) || 'Set desconocido'
-                      : String(card.set || 'Set desconocido')
-                  }
+                  {formatSetInfo(card.set)}
                 </p>
               </div>
 
