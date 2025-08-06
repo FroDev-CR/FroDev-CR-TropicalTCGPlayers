@@ -203,6 +203,21 @@ export default function Marketplace() {
       // Buscar vendedores locales en paralelo
       const localSellers = await searchLocalSellers(sanitizedTerm);
       
+      // Función para formatear información del set
+      const formatSetInfo = (set) => {
+        if (!set) return 'Set desconocido';
+        if (typeof set === 'string') return set;
+        if (typeof set === 'object' && set !== null) {
+          const name = set.name || '';
+          const series = set.series || '';
+          if (name && series) return `${name}, ${series}`;
+          else if (name) return name;
+          else if (series) return series;
+          else return 'Set desconocido';
+        }
+        return String(set);
+      };
+
       // Combinar resultados: agregar vendedores locales a las cartas de API
       const enrichedCards = apiResults.cards.map(card => {
         const cardSellers = localSellers.filter(seller => 
@@ -212,6 +227,8 @@ export default function Marketplace() {
         
         return {
           ...card,
+          // Formatear el objeto set correctamente
+          set: { name: formatSetInfo(card.set) },
           sellers: cardSellers,
           hasLocalSellers: cardSellers.length > 0
         };
@@ -635,7 +652,7 @@ export default function Marketplace() {
                           id: listing.cardId || listing.id,
                           name: listing.cardName,
                           images: { small: listing.cardImage, large: listing.cardImage },
-                          set: { name: listing.setName || 'Desconocido' },
+                          set: { name: typeof listing.setName === 'object' ? (listing.setName.name || 'Desconocido') : (listing.setName || 'Desconocido') },
                           rarity: listing.rarity || 'Sin rareza'
                         };
                         openCardModal(cardData);
