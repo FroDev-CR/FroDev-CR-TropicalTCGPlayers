@@ -6,6 +6,9 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import AuthModal from './AuthModal';
 import { FaUser, FaShoppingCart, FaBook, FaHome, FaSignOutAlt, FaChartLine, FaCalendarAlt } from 'react-icons/fa';
+import './Navbar.css';
+import portadaImage from '../assets/images/portada2.png';
+import logoImage from '../assets/images/logo.png';
 
 const CustomNavbar = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -42,17 +45,21 @@ const CustomNavbar = () => {
   return (
     <>
       <Navbar 
-        bg="dark" 
         variant="dark" 
         expand="lg" 
         fixed="top" 
-        className="py-2 py-lg-3 shadow-sm"
+        className="py-2 py-lg-3 shadow-sm custom-navbar"
         expanded={expanded}
         onToggle={(expanded) => setExpanded(expanded)}
       >
         <Container>
           <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
-            <span className="h5 h-lg-4 mb-0 fw-bold">TROPICAL PLAYERS TCG</span>
+            <img 
+              src={logoImage} 
+              alt="Tropical Players TCG Logo" 
+              style={{ height: '40px' }}
+              className="d-inline-block align-top"
+            />
           </Navbar.Brand>
           
           <Navbar.Toggle 
