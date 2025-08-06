@@ -194,7 +194,7 @@ export default function CardDetailModal({ show, onHide, card }) {
               <Row className="g-2">
                 <Col xs={6}>
                   <small className="text-muted">Set:</small>
-                  <div>{card.set?.name || 'Desconocido'}</div>
+                  <div>{typeof card.set === 'object' ? (card.set?.name || 'Desconocido') : String(card.set || 'Desconocido')}</div>
                 </Col>
                 <Col xs={6}>
                   <small className="text-muted">Rareza:</small>
@@ -486,52 +486,60 @@ export default function CardDetailModal({ show, onHide, card }) {
       centered
       className="card-detail-modal"
     >
-      <Modal.Header closeButton className="border-0 bg-light">
-        <Modal.Title className="d-flex align-items-center gap-2">
-          {renderTCGBadge(card.tcgType)}
-          {card.name}
-        </Modal.Title>
-      </Modal.Header>
-      
-      <Modal.Body className="p-0" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-        <Row className="g-0">
+      <div 
+        className="modal-content-wrapper"
+        style={{
+          backgroundImage: 'url("/tropical tcg/background celeeste.png")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          borderRadius: '20px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Overlay para todo el modal */}
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(3px)'
+          }}
+        ></div>
+        
+        <Modal.Header closeButton className="border-0" style={{ background: 'transparent', position: 'relative', zIndex: 3 }}>
+          <Modal.Title className="d-flex align-items-center gap-2" style={{ color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+            {renderTCGBadge(card.tcgType)}
+            {card.name}
+          </Modal.Title>
+        </Modal.Header>
+        
+        <Modal.Body className="p-0" style={{ position: 'relative', zIndex: 2 }}>
+        <Row className="g-0" style={{ minHeight: '70vh' }}>
           {/* Columna izquierda: Imagen de la carta */}
-          <Col lg={5} className="bg-gradient d-flex flex-column">
+          <Col lg={6} className="bg-gradient d-flex flex-column">
             <div 
-              className="p-4 d-flex flex-column align-items-center justify-content-center flex-grow-1"
+              className="p-3 d-flex flex-column align-items-center justify-content-center flex-grow-1"
               style={{ 
-                backgroundImage: 'url("/tropical tcg/background celeeste.png")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                minHeight: '500px',
+                minHeight: '70vh',
                 position: 'relative'
               }}
             >
-              {/* Overlay semi-transparente para mejor legibilidad */}
+              <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', width: '100%', height: '100%' }}>
               <div 
+                className="card-image-container position-relative mb-2"
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  backdropFilter: 'blur(2px)'
-                }}
-              ></div>
-              
-              <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', width: '100%' }}>
-              <div 
-                className="card-image-container position-relative mb-3"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '450px',
+                  width: '100%',
+                  height: '55vh',
                   overflow: 'hidden',
-                  borderRadius: '12px',
-                  border: '3px solid rgba(255,255,255,0.3)',
+                  borderRadius: '15px',
+                  border: '3px solid rgba(255,255,255,0.4)',
                   cursor: 'zoom-in',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
                 }}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
@@ -543,7 +551,7 @@ export default function CardDetailModal({ show, onHide, card }) {
                   className="img-fluid"
                   style={{ 
                     width: '100%', 
-                    height: '450px', 
+                    height: '100%', 
                     objectFit: 'contain',
                     transition: 'transform 0.3s ease',
                     transform: imageZoomed ? `scale(2) translate(-${(mousePosition.x - 50)}%, -${(mousePosition.y - 50)}%)` : 'scale(1)',
@@ -557,10 +565,11 @@ export default function CardDetailModal({ show, onHide, card }) {
                   <div 
                     className="position-absolute top-0 end-0 m-2 px-2 py-1 rounded"
                     style={{
-                      background: 'rgba(0,0,0,0.7)',
+                      background: 'rgba(0,0,0,0.8)',
                       color: 'white',
                       fontSize: '0.8rem',
-                      zIndex: 10
+                      zIndex: 10,
+                      backdropFilter: 'blur(5px)'
                     }}
                   >
                     🔍 Zoom activo
@@ -586,17 +595,17 @@ export default function CardDetailModal({ show, onHide, card }) {
           </Col>
 
           {/* Columna derecha: Detalles y vendedores */}
-          <Col lg={7}>
-            <div className="p-4">
+          <Col lg={6}>
+            <div className="p-4" style={{ maxHeight: '70vh', overflowY: 'auto', color: 'white' }}>
               {/* Información básica de la carta */}
               <div className="mb-4">
-                <h4 className="mb-2">{card.name}</h4>
+                <h4 className="mb-2" style={{ color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>{card.name}</h4>
                 <div className="d-flex gap-2 mb-3">
                   {renderTCGBadge(card.tcgType)}
                   <Badge bg="secondary">{card.rarity || 'Sin rareza'}</Badge>
                 </div>
-                <p className="text-muted mb-3">
-                  {card.set?.name || 'Set desconocido'}
+                <p className="mb-3" style={{ color: 'rgba(255,255,255,0.9)', textShadow: '1px 1px 2px rgba(0,0,0,0.7)' }}>
+                  {typeof card.set === 'object' ? (card.set?.name || 'Set desconocido') : String(card.set || 'Set desconocido')}
                 </p>
               </div>
 
@@ -761,7 +770,8 @@ export default function CardDetailModal({ show, onHide, card }) {
             </div>
           </Col>
         </Row>
-      </Modal.Body>
+        </Modal.Body>
+      </div>
     </Modal>
   );
 }
