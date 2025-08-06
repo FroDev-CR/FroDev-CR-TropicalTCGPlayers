@@ -28,6 +28,7 @@ const TCG_GAMES = {
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTCG, setSelectedTCG] = useState('');
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -180,23 +181,23 @@ export default function Marketplace() {
     }
   }, [searchTerm]);
 
-  // Función unificada - buscar en APIs externas Y vendedores locales
-  const searchCardsUnified = async (searchTerm, page = 1, pageSize = 12, tcgFilter = 'all') => {
+  // Función simplificada - buscar en una sola API según el TCG seleccionado
+  const searchCardsUnified = async (searchTerm, selectedTcg, page = 1, pageSize = 12) => {
     const sanitizedTerm = searchTerm
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9\s\-']/g, '')
       .replace(/\s+/g, ' ');
     
-    console.log(`🔍 Búsqueda unificada: "${sanitizedTerm}" (filtro: ${tcgFilter})`);
+    console.log(`🔍 Búsqueda en ${selectedTcg}: "${sanitizedTerm}"`);
     
     try {
-      // Buscar en APIs externas
-      const apiResults = await apiSearchService.searchAllAPIs(
+      // Buscar en la API específica seleccionada
+      const apiResults = await apiSearchService.searchSpecificAPI(
+        selectedTcg,
         sanitizedTerm, 
         page, 
-        pageSize, 
-        tcgFilter
+        pageSize
       );
       
       // Buscar vendedores locales en paralelo
@@ -225,13 +226,13 @@ export default function Marketplace() {
       };
       
     } catch (error) {
-      console.error('Error en búsqueda unificada:', error);
+      console.error('Error en búsqueda específica:', error);
       // Fallback: buscar solo en vendedores locales
       const localResults = await searchLocalSellers(sanitizedTerm);
       return {
         cards: convertListingsToCards(localResults),
         totalResults: localResults.length,
-        errors: [{ api: 'Unified', error: 'API externa falló, mostrando solo vendedores locales' }]
+        errors: [{ api: 'Specific', error: `API de ${selectedTcg} falló, mostrando solo vendedores locales` }]
       };
     }
   };
@@ -301,7 +302,7 @@ export default function Marketplace() {
   };
 
 
-  // Función de búsqueda unificada (APIs + vendedores locales)
+  // Función de búsqueda específica por TCG
   const performSearch = useCallback(async (term, page = 1) => {
     if (!term.trim()) {
       setCards([]);
@@ -311,15 +312,17 @@ export default function Marketplace() {
       return;
     }
 
+    if (!selectedTCG) {
+      setSearchError('⚠️ Selecciona un TCG antes de buscar');
+      return;
+    }
+
     setLoading(true);
     setSearchError('');
     
     try {
-      // Determinar filtro de TCG activo
-      const activeTcgFilter = filters.tcgTypes.length === 1 ? filters.tcgTypes[0] : 'all';
-      
-      // Búsqueda unificada en APIs externas + vendedores locales
-      const searchResults = await searchCardsUnified(term, page, 12, activeTcgFilter);
+      // Búsqueda específica en el TCG seleccionado + vendedores locales
+      const searchResults = await searchCardsUnified(term, selectedTCG, page, 12);
       
       // Procesar cartas y calcular precios de vendedores
       const processedCards = searchResults.cards.map(card => {
@@ -353,19 +356,15 @@ export default function Marketplace() {
 
       // Mostrar información sobre el estado de los datos
       if (searchResults.errors && searchResults.errors.length > 0) {
-        if (searchResults.usingMockData) {
-          setSearchError('💡 Mostrando datos de demostración. Las APIs externas no están disponibles debido a restricciones CORS.');
-        } else {
-          const errorMessages = searchResults.errors.map(err => `${err.api}: ${err.error}`).join('; ');
-          setSearchError(`⚠️ Algunos servicios no están disponibles: ${errorMessages}`);
-        }
+        const errorMessages = searchResults.errors.map(err => `${err.api}: ${err.error}`).join('; ');
+        setSearchError(`⚠️ ${errorMessages}`);
       }
       
       if (finalCards.length === 0) {
-        setSearchError('No se encontraron cartas que coincidan con tu búsqueda.');
+        setSearchError(`No se encontraron cartas de ${TCG_GAMES[selectedTCG]?.name || selectedTCG} que coincidan con tu búsqueda.`);
       }
 
-      console.log(`✅ Búsqueda completada: ${finalCards.length} cartas encontradas (${searchResults.totalResults} total)`);
+      console.log(`✅ Búsqueda en ${selectedTCG} completada: ${finalCards.length} cartas encontradas`);
 
     } catch (error) {
       console.error('Error searching cards:', error);
@@ -375,7 +374,7 @@ export default function Marketplace() {
       setSearchError('Error al buscar cartas. Verifica tu conexión e inténtalo de nuevo.');
     }
     setLoading(false);
-  }, [filters]);
+  }, [filters, selectedTCG]);
 
   // Paginación
   const handlePagination = useCallback((newPage) => {
@@ -399,6 +398,11 @@ export default function Marketplace() {
       setTotalResults(0);
       setTotalPages(1);
       setCurrentPage(1);
+      return;
+    }
+    
+    if (!selectedTCG) {
+      setSearchError('⚠️ Selecciona un TCG antes de buscar');
       return;
     }
     
@@ -466,8 +470,15 @@ export default function Marketplace() {
         {/* Header del Marketplace */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
           <div className="mb-3 mb-md-0">
-            <h2 className="section-title mb-2">🏪 Marketplace TCG Unificado</h2>
-            <p className="text-muted mb-0">Busca cartas en Pokémon, One Piece, Dragon Ball, Magic y más TCGs. Encuentra vendedores locales al mejor precio.</p>
+            <h2 className="section-title mb-2">🎯 Marketplace TCG Especializado</h2>
+            <p className="text-muted mb-0">Selecciona tu TCG favorito y busca cartas específicas. Conectamos con APIs oficiales y vendedores locales.</p>
+            {selectedTCG && (
+              <div className="mt-2">
+                <span className="badge bg-primary fs-6">
+                  {TCG_GAMES[selectedTCG]?.icon} Buscando en {TCG_GAMES[selectedTCG]?.name}
+                </span>
+              </div>
+            )}
           </div>
           <div className="d-flex gap-2">
             <Button 
@@ -482,47 +493,78 @@ export default function Marketplace() {
         </div>
 
 
-        {/* Barra de búsqueda mejorada */}
+        {/* Selector de TCG obligatorio */}
         <div className="mb-4">
-          <div className="input-group mb-3">
-            <span className="input-group-text">
-              <FaSearch />
-            </span>
-            <Form.Control
-              type="text"
-              placeholder="🔍 Buscar cartas en APIs externas - Pokémon, One Piece, Dragon Ball, Magic, Digimon y más..."
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchTerm.trim() && performSearch(searchTerm, 1)}
-              className="form-control-lg"
-            />
-            <Button 
-              variant="outline-secondary"
-              onClick={() => setShowFilters(!showFilters)}
-              className="btn-lg d-flex align-items-center gap-2"
-              title="Filtros avanzados"
-            >
-              <FaFilter />
-              {getActiveFiltersCount() > 0 && (
-                <span className="badge bg-primary">{getActiveFiltersCount()}</span>
-              )}
-              <span className="d-none d-md-inline">Filtros</span>
-            </Button>
-            <Button 
-              onClick={() => searchTerm.trim() && performSearch(searchTerm, 1)} 
-              disabled={loading || !searchTerm.trim()}
-              variant="primary"
-              className="btn-lg"
-            >
-              {loading ? (
-                <Spinner size="sm" animation="border" role="status" />
-              ) : (
-                <FaSearch size={14} />
-              )}
-              <span className="d-none d-sm-inline ms-2">
-                {loading ? 'Buscando...' : 'Buscar'}
-              </span>
-            </Button>
+          <div className="row align-items-center mb-3">
+            <div className="col-12 col-md-4">
+              <Form.Group>
+                <Form.Label className="fw-bold">1. Selecciona el TCG</Form.Label>
+                <Form.Select
+                  value={selectedTCG}
+                  onChange={(e) => {
+                    setSelectedTCG(e.target.value);
+                    setSearchError('');
+                    setCards([]);
+                  }}
+                  className="form-select-lg"
+                  size="lg"
+                >
+                  <option value="">Elige un Trading Card Game</option>
+                  {Object.entries(TCG_GAMES).filter(([key]) => key !== 'unknown').map(([key, tcg]) => (
+                    <option key={key} value={key}>
+                      {tcg.icon} {tcg.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </div>
+            <div className="col-12 col-md-8">
+              <Form.Group>
+                <Form.Label className="fw-bold">2. Buscar cartas</Form.Label>
+                <div className="input-group">
+                  <span className="input-group-text">
+                    <FaSearch />
+                  </span>
+                  <Form.Control
+                    type="text"
+                    placeholder={selectedTCG ? `🔍 Buscar cartas de ${TCG_GAMES[selectedTCG]?.name}...` : "Selecciona un TCG primero"}
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && searchTerm.trim() && selectedTCG && performSearch(searchTerm, 1)}
+                    className="form-control-lg"
+                    disabled={!selectedTCG}
+                  />
+                  <Button 
+                    variant="outline-secondary"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="btn-lg d-flex align-items-center gap-2"
+                    title="Filtros avanzados"
+                    disabled={!selectedTCG}
+                  >
+                    <FaFilter />
+                    {getActiveFiltersCount() > 0 && (
+                      <span className="badge bg-primary">{getActiveFiltersCount()}</span>
+                    )}
+                    <span className="d-none d-md-inline">Filtros</span>
+                  </Button>
+                  <Button 
+                    onClick={() => searchTerm.trim() && selectedTCG && performSearch(searchTerm, 1)} 
+                    disabled={loading || !searchTerm.trim() || !selectedTCG}
+                    variant="primary"
+                    className="btn-lg"
+                  >
+                    {loading ? (
+                      <Spinner size="sm" animation="border" role="status" />
+                    ) : (
+                      <FaSearch size={14} />
+                    )}
+                    <span className="d-none d-sm-inline ms-2">
+                      {loading ? 'Buscando...' : 'Buscar'}
+                    </span>
+                  </Button>
+                </div>
+              </Form.Group>
+            </div>
           </div>
           
 

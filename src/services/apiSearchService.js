@@ -155,6 +155,126 @@ class APISearchService {
     });
   }
 
+  // Método para buscar en una API específica
+  async searchSpecificAPI(tcgType, searchTerm, page = 1, pageSize = 24) {
+    if (!searchTerm.trim()) {
+      return { cards: [], totalResults: 0, errors: [] };
+    }
+
+    console.log(`🔍 Buscando "${searchTerm}" en ${tcgType} API`);
+
+    // Usar datos de demostración (activado por defecto para evitar CORS)
+    if (this.useMockData) {
+      console.log('📝 Usando datos de demostración');
+      const mockCards = this.getMockCards(searchTerm, tcgType);
+      const normalizedMockCards = this.normalizeCards(mockCards);
+      const sortedCards = this.sortByRelevance(normalizedMockCards, searchTerm);
+      
+      const startIndex = (page - 1) * pageSize;
+      const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
+
+      return {
+        cards: paginatedCards,
+        totalResults: sortedCards.length,
+        errors: [{ api: 'Demo', error: 'Modo demostración activado' }],
+        page: page,
+        totalPages: Math.ceil(sortedCards.length / pageSize),
+        usingMockData: true
+      };
+    }
+
+    let allCards = [];
+    let errors = [];
+
+    try {
+      if (tcgType === 'pokemon') {
+        // Buscar en Pokemon API
+        if (this.pokemonApiKey) {
+          try {
+            const pokemonResult = await this.searchPokemonAPI(searchTerm, page, pageSize);
+            if (pokemonResult.cards && pokemonResult.cards.length > 0) {
+              allCards = pokemonResult.cards;
+              console.log(`✅ Pokemon API: ${pokemonResult.cards.length} cartas encontradas`);
+            }
+          } catch (error) {
+            console.warn('⚠️ Pokemon API falló:', error.message);
+            errors.push({ api: 'Pokemon', error: 'Error de conectividad' });
+          }
+        } else {
+          errors.push({ api: 'Pokemon', error: 'API key no configurada' });
+        }
+      } else {
+        // Buscar en TCGS API
+        if (this.tcgApiKey) {
+          try {
+            const tcgResult = await this.searchTCGSAPI(tcgType, searchTerm, page, pageSize);
+            if (tcgResult.cards && tcgResult.cards.length > 0) {
+              allCards = tcgResult.cards;
+              console.log(`✅ ${tcgType} API: ${tcgResult.cards.length} cartas encontradas`);
+            }
+          } catch (error) {
+            console.warn(`⚠️ ${tcgType} API falló:`, error.message);
+            errors.push({ api: tcgType, error: 'Error de conectividad' });
+          }
+        } else {
+          errors.push({ api: tcgType, error: 'API key no configurada' });
+        }
+      }
+
+      // Si la API falló, usar datos de demostración
+      if (allCards.length === 0) {
+        console.log('📝 API falló - usando datos de demostración');
+        const mockCards = this.getMockCards(searchTerm, tcgType);
+        allCards = mockCards;
+        errors.push({ api: 'Fallback', error: 'API no disponible - mostrando datos de demostración' });
+      }
+
+      // Normalizar y eliminar duplicados
+      const normalizedCards = this.normalizeCards(allCards);
+      const uniqueCards = this.removeDuplicates(normalizedCards);
+
+      // Ordenar por relevancia
+      const sortedCards = this.sortByRelevance(uniqueCards, searchTerm);
+
+      // Paginación
+      const startIndex = (page - 1) * pageSize;
+      const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
+
+      const result = {
+        cards: paginatedCards,
+        totalResults: sortedCards.length,
+        errors: errors,
+        page: page,
+        totalPages: Math.ceil(sortedCards.length / pageSize),
+        usingMockData: allCards.length > 0 && allCards[0]?.apiSource === 'mock'
+      };
+
+      console.log(`✅ Búsqueda en ${tcgType} completada: ${sortedCards.length} cartas encontradas`);
+      return result;
+
+    } catch (error) {
+      console.error(`Error en búsqueda de ${tcgType}:`, error);
+      
+      // Fallback final: usar datos de demostración
+      console.log('📝 Error general - usando datos de demostración como fallback');
+      const mockCards = this.getMockCards(searchTerm, tcgType);
+      const normalizedMockCards = this.normalizeCards(mockCards);
+      const sortedCards = this.sortByRelevance(normalizedMockCards, searchTerm);
+      
+      const startIndex = (page - 1) * pageSize;
+      const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
+
+      return {
+        cards: paginatedCards,
+        totalResults: sortedCards.length,
+        errors: [{ api: 'Error', error: 'Error de conectividad - mostrando datos de demostración' }],
+        page: page,
+        totalPages: Math.ceil(sortedCards.length / pageSize),
+        usingMockData: true
+      };
+    }
+  }
+
   // Método principal para buscar en todas las APIs
   async searchAllAPIs(searchTerm, page = 1, pageSize = 24, tcgFilter = 'all') {
     if (!searchTerm.trim()) {
