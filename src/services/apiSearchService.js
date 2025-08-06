@@ -5,7 +5,7 @@ class APISearchService {
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
     this.pokemonApiKey = process.env.REACT_APP_POKEMON_API_KEY;
     this.tcgApiKey = process.env.REACT_APP_TCG_API_KEY;
-    this.useMockData = true; // Activado por defecto para evitar errores CORS
+    this.useMockData = false; // Desactivado para usar APIs reales
   }
 
   // Mock data para cuando las APIs fallen
