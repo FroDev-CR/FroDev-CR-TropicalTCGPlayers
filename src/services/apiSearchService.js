@@ -53,15 +53,15 @@ class APISearchService {
         id: 'mock-luffy-1',
         name: 'Monkey D. Luffy',
         images: {
-          small: 'https://via.placeholder.com/245x342/FF6B6B/FFFFFF?text=Luffy',
-          large: 'https://via.placeholder.com/734x1024/FF6B6B/FFFFFF?text=Luffy'
+          small: 'https://images.pokemontcg.io/base1/25.png',
+          large: 'https://images.pokemontcg.io/base1/25_hires.png'
         },
         set: { name: 'Romance Dawn' },
         rarity: 'Leader',
         tcgType: 'onepiece',
         apiSource: 'mock',
-        cost: 1,
-        power: 5000,
+        cost: '1',
+        power: '5000',
         color: 'Red',
         ability: '[Activate: Main] You may rest this Leader: Add up to 1 DON!! card from your DON!! deck and set it as active.'
       },
@@ -69,15 +69,15 @@ class APISearchService {
         id: 'mock-goku-1',
         name: 'Son Goku',
         images: {
-          small: 'https://via.placeholder.com/245x342/FF9500/FFFFFF?text=Goku',
-          large: 'https://via.placeholder.com/734x1024/FF9500/FFFFFF?text=Goku'
+          small: 'https://images.pokemontcg.io/base1/6.png',
+          large: 'https://images.pokemontcg.io/base1/6_hires.png'
         },
         set: { name: 'Dragon Ball Super' },
         rarity: 'Super Rare',
         tcgType: 'dragonball',
         apiSource: 'mock',
-        cost: 4,
-        power: 20000,
+        cost: '4',
+        power: '20000',
         color: 'Orange',
         ability: '[Auto] When you play this card, draw 1 card.'
       },
@@ -85,14 +85,14 @@ class APISearchService {
         id: 'mock-black-lotus',
         name: 'Black Lotus',
         images: {
-          small: 'https://via.placeholder.com/245x342/8B5CF6/FFFFFF?text=Black+Lotus',
-          large: 'https://via.placeholder.com/734x1024/8B5CF6/FFFFFF?text=Black+Lotus'
+          small: 'https://images.pokemontcg.io/base1/2.png',
+          large: 'https://images.pokemontcg.io/base1/2_hires.png'
         },
         set: { name: 'Alpha' },
         rarity: 'Rare',
         tcgType: 'magic',
         apiSource: 'mock',
-        cost: 0,
+        cost: '0',
         type: 'Artifact',
         ability: '{T}, Sacrifice Black Lotus: Add three mana of any one color.'
       },
@@ -100,15 +100,15 @@ class APISearchService {
         id: 'mock-agumon-1',
         name: 'Agumon',
         images: {
-          small: 'https://via.placeholder.com/245x342/10B981/FFFFFF?text=Agumon',
-          large: 'https://via.placeholder.com/734x1024/10B981/FFFFFF?text=Agumon'
+          small: 'https://images.pokemontcg.io/base1/32.png',
+          large: 'https://images.pokemontcg.io/base1/32_hires.png'
         },
         set: { name: 'BT01 New Evolution' },
         rarity: 'Common',
         tcgType: 'digimon',
         apiSource: 'mock',
-        cost: 3,
-        power: 2000,
+        cost: '3',
+        power: '2000',
         type: 'Rookie',
         attribute: 'Vaccine'
       },
@@ -116,15 +116,15 @@ class APISearchService {
         id: 'mock-naruto-1',
         name: 'Naruto Uzumaki',
         images: {
-          small: 'https://via.placeholder.com/245x342/FFA500/FFFFFF?text=Naruto',
-          large: 'https://via.placeholder.com/734x1024/FFA500/FFFFFF?text=Naruto'
+          small: 'https://images.pokemontcg.io/base1/44.png',
+          large: 'https://images.pokemontcg.io/base1/44_hires.png'
         },
         set: { name: 'Union Arena' },
         rarity: 'Rare',
         tcgType: 'unionarena',
         apiSource: 'mock',
-        cost: 2,
-        power: 3000,
+        cost: '2',
+        power: '3000',
         color: 'Orange',
         ability: 'Shadow Clone Jutsu: Create multiple copies to confuse enemies.'
       },
@@ -132,15 +132,15 @@ class APISearchService {
         id: 'mock-gundam-1',
         name: 'RX-78-2 Gundam',
         images: {
-          small: 'https://via.placeholder.com/245x342/4F46E5/FFFFFF?text=Gundam',
-          large: 'https://via.placeholder.com/734x1024/4F46E5/FFFFFF?text=Gundam'
+          small: 'https://images.pokemontcg.io/base1/7.png',
+          large: 'https://images.pokemontcg.io/base1/7_hires.png'
         },
         set: { name: 'Mobile Suit Gundam' },
         rarity: 'Ultra Rare',
         tcgType: 'gundam',
         apiSource: 'mock',
-        cost: 5,
-        power: 8000,
+        cost: '5',
+        power: '8000',
         type: 'Mobile Suit',
         ability: 'Beam Rifle: Deal 2000 damage to target enemy unit.'
       }

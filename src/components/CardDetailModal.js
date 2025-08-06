@@ -199,15 +199,15 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <Row className="g-2">
                       <Col xs={4}>
                         <small className="text-muted">HP:</small>
-                        <div className="fw-bold">{card.hp}</div>
+                        <div className="fw-bold">{String(card.hp)}</div>
                       </Col>
-                      {card.types && (
+                      {card.types && Array.isArray(card.types) && (
                         <Col xs={8}>
                           <small className="text-muted">Tipos:</small>
                           <div>
-                            {card.types.map(type => (
-                              <Badge key={type} bg="light" text="dark" className="me-1">
-                                {type}
+                            {card.types.map((type, index) => (
+                              <Badge key={index} bg="light" text="dark" className="me-1">
+                                {String(type)}
                               </Badge>
                             ))}
                           </div>
@@ -222,9 +222,9 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <h6 className="text-muted mb-2">Ataques</h6>
                     {card.attacks.slice(0, 2).map((attack, index) => (
                       <div key={index} className="border rounded p-2 mb-2">
-                        <div className="fw-bold">{attack.name}</div>
-                        {attack.damage && <div className="text-end fw-bold">{attack.damage}</div>}
-                        {attack.text && <small className="text-muted">{attack.text}</small>}
+                        <div className="fw-bold">{String(attack.name || '')}</div>
+                        {attack.damage && <div className="text-end fw-bold">{String(attack.damage)}</div>}
+                        {attack.text && <small className="text-muted">{String(attack.text)}</small>}
                       </div>
                     ))}
                   </div>
@@ -235,8 +235,8 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <h6 className="text-muted mb-2">Habilidades</h6>
                     {card.abilities.map((ability, index) => (
                       <div key={index} className="border rounded p-2 mb-2">
-                        <div className="fw-bold">{ability.name}</div>
-                        <small className="text-muted">{ability.text}</small>
+                        <div className="fw-bold">{String(ability.name || '')}</div>
+                        <small className="text-muted">{String(ability.text || '')}</small>
                       </div>
                     ))}
                   </div>
@@ -252,20 +252,20 @@ export default function CardDetailModal({ show, onHide, card }) {
                   {card.cost && (
                     <Col xs={6}>
                       <small className="text-muted">Costo:</small>
-                      <div className="fw-bold">{card.cost}</div>
+                      <div className="fw-bold">{String(card.cost)}</div>
                     </Col>
                   )}
                   {card.power && (
                     <Col xs={6}>
                       <small className="text-muted">Poder:</small>
-                      <div className="fw-bold">{card.power}</div>
+                      <div className="fw-bold">{String(card.power)}</div>
                     </Col>
                   )}
                   {card.color && (
                     <Col xs={6}>
                       <small className="text-muted">Color:</small>
                       <div>
-                        <Badge bg="light" text="dark">{card.color}</Badge>
+                        <Badge bg="light" text="dark">{String(card.color)}</Badge>
                       </div>
                     </Col>
                   )}
@@ -273,7 +273,7 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <Col xs={6}>
                       <small className="text-muted">Tipo:</small>
                       <div>
-                        <Badge bg="info">{card.type}</Badge>
+                        <Badge bg="info">{String(card.type)}</Badge>
                       </div>
                     </Col>
                   )}
@@ -288,7 +288,7 @@ export default function CardDetailModal({ show, onHide, card }) {
                   {card.ability ? 'Habilidad' : 'Efecto'}
                 </h6>
                 <div className="border rounded p-2 bg-light">
-                  <small>{card.ability || card.effect}</small>
+                  <small>{String(card.ability || card.effect || '')}</small>
                 </div>
               </div>
             )}
@@ -298,7 +298,7 @@ export default function CardDetailModal({ show, onHide, card }) {
               <div className="mb-3">
                 <h6 className="text-muted mb-2">Texto de Ambientación</h6>
                 <div className="fst-italic text-muted">
-                  <small>"{card.flavorText}"</small>
+                  <small>"{String(card.flavorText || '')}"</small>
                 </div>
               </div>
             )}
