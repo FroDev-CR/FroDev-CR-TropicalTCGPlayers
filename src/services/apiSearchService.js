@@ -5,9 +5,157 @@ class APISearchService {
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
     this.pokemonApiKey = process.env.REACT_APP_POKEMON_API_KEY;
     this.tcgApiKey = process.env.REACT_APP_TCG_API_KEY;
+    this.useMockData = true; // Activado por defecto para evitar errores CORS
   }
 
-  // MÈtodo principal para buscar en todas las APIs
+  // Mock data para cuando las APIs fallen
+  getMockCards(searchTerm, tcgType = 'all') {
+    const mockCards = [
+      {
+        id: 'mock-charizard-1',
+        name: 'Charizard',
+        images: {
+          small: 'https://images.pokemontcg.io/base1/4.png',
+          large: 'https://images.pokemontcg.io/base1/4_hires.png'
+        },
+        set: { name: 'Base Set' },
+        rarity: 'Rare Holo',
+        tcgType: 'pokemon',
+        apiSource: 'mock',
+        hp: 120,
+        types: ['Fire'],
+        attacks: [
+          { name: 'Fire Spin', damage: '100', cost: ['Fire', 'Fire', 'Fire', 'Fire'] }
+        ],
+        flavorText: 'Spits fire that is hot enough to melt boulders.',
+        artist: 'Mitsuhiro Arita'
+      },
+      {
+        id: 'mock-pikachu-1',
+        name: 'Pikachu',
+        images: {
+          small: 'https://images.pokemontcg.io/base1/58.png',
+          large: 'https://images.pokemontcg.io/base1/58_hires.png'
+        },
+        set: { name: 'Base Set' },
+        rarity: 'Common',
+        tcgType: 'pokemon',
+        apiSource: 'mock',
+        hp: 60,
+        types: ['Lightning'],
+        attacks: [
+          { name: 'Thunder Jolt', damage: '30', cost: ['Lightning', 'Colorless'] }
+        ],
+        flavorText: 'When several of these Pok√©mon gather, their electricity could build and cause lightning storms.',
+        artist: 'Atsuko Nishida'
+      },
+      {
+        id: 'mock-luffy-1',
+        name: 'Monkey D. Luffy',
+        images: {
+          small: 'https://via.placeholder.com/245x342/FF6B6B/FFFFFF?text=Luffy',
+          large: 'https://via.placeholder.com/734x1024/FF6B6B/FFFFFF?text=Luffy'
+        },
+        set: { name: 'Romance Dawn' },
+        rarity: 'Leader',
+        tcgType: 'onepiece',
+        apiSource: 'mock',
+        cost: 1,
+        power: 5000,
+        color: 'Red',
+        ability: '[Activate: Main] You may rest this Leader: Add up to 1 DON!! card from your DON!! deck and set it as active.'
+      },
+      {
+        id: 'mock-goku-1',
+        name: 'Son Goku',
+        images: {
+          small: 'https://via.placeholder.com/245x342/FF9500/FFFFFF?text=Goku',
+          large: 'https://via.placeholder.com/734x1024/FF9500/FFFFFF?text=Goku'
+        },
+        set: { name: 'Dragon Ball Super' },
+        rarity: 'Super Rare',
+        tcgType: 'dragonball',
+        apiSource: 'mock',
+        cost: 4,
+        power: 20000,
+        color: 'Orange',
+        ability: '[Auto] When you play this card, draw 1 card.'
+      },
+      {
+        id: 'mock-black-lotus',
+        name: 'Black Lotus',
+        images: {
+          small: 'https://via.placeholder.com/245x342/8B5CF6/FFFFFF?text=Black+Lotus',
+          large: 'https://via.placeholder.com/734x1024/8B5CF6/FFFFFF?text=Black+Lotus'
+        },
+        set: { name: 'Alpha' },
+        rarity: 'Rare',
+        tcgType: 'magic',
+        apiSource: 'mock',
+        cost: 0,
+        type: 'Artifact',
+        ability: '{T}, Sacrifice Black Lotus: Add three mana of any one color.'
+      },
+      {
+        id: 'mock-agumon-1',
+        name: 'Agumon',
+        images: {
+          small: 'https://via.placeholder.com/245x342/10B981/FFFFFF?text=Agumon',
+          large: 'https://via.placeholder.com/734x1024/10B981/FFFFFF?text=Agumon'
+        },
+        set: { name: 'BT01 New Evolution' },
+        rarity: 'Common',
+        tcgType: 'digimon',
+        apiSource: 'mock',
+        cost: 3,
+        power: 2000,
+        type: 'Rookie',
+        attribute: 'Vaccine'
+      },
+      {
+        id: 'mock-naruto-1',
+        name: 'Naruto Uzumaki',
+        images: {
+          small: 'https://via.placeholder.com/245x342/FFA500/FFFFFF?text=Naruto',
+          large: 'https://via.placeholder.com/734x1024/FFA500/FFFFFF?text=Naruto'
+        },
+        set: { name: 'Union Arena' },
+        rarity: 'Rare',
+        tcgType: 'unionarena',
+        apiSource: 'mock',
+        cost: 2,
+        power: 3000,
+        color: 'Orange',
+        ability: 'Shadow Clone Jutsu: Create multiple copies to confuse enemies.'
+      },
+      {
+        id: 'mock-gundam-1',
+        name: 'RX-78-2 Gundam',
+        images: {
+          small: 'https://via.placeholder.com/245x342/4F46E5/FFFFFF?text=Gundam',
+          large: 'https://via.placeholder.com/734x1024/4F46E5/FFFFFF?text=Gundam'
+        },
+        set: { name: 'Mobile Suit Gundam' },
+        rarity: 'Ultra Rare',
+        tcgType: 'gundam',
+        apiSource: 'mock',
+        cost: 5,
+        power: 8000,
+        type: 'Mobile Suit',
+        ability: 'Beam Rifle: Deal 2000 damage to target enemy unit.'
+      }
+    ];
+
+    // Filtrar por t√©rmino de b√∫squeda
+    return mockCards.filter(card => {
+      const matchesName = card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         searchTerm.toLowerCase().includes(card.name.toLowerCase().substring(0, 3));
+      const matchesType = tcgType === 'all' || card.tcgType === tcgType;
+      return matchesName && matchesType;
+    });
+  }
+
+  // M√©todo principal para buscar en todas las APIs
   async searchAllAPIs(searchTerm, page = 1, pageSize = 24, tcgFilter = 'all') {
     if (!searchTerm.trim()) {
       return { cards: [], totalResults: 0, errors: [] };
@@ -15,60 +163,83 @@ class APISearchService {
 
     const cacheKey = `${searchTerm}-${page}-${pageSize}-${tcgFilter}`;
     
-    // Verificar cachÈ
+    // Verificar cache
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheTimeout) {
-        console.log('=Ä Resultado obtenido desde cachÈ');
+        console.log('üöÄ Resultado obtenido desde cache');
         return cached.data;
       }
       this.cache.delete(cacheKey);
     }
 
-    console.log(`= Buscando "${searchTerm}" en APIs externas (filtro: ${tcgFilter})`);
+    console.log(`üîç Buscando "${searchTerm}" en APIs externas (filtro: ${tcgFilter})`);
+
+    // Usar datos de demostraci√≥n (activado por defecto para evitar CORS)
+    if (this.useMockData) {
+      console.log('üìù Usando datos de demostraci√≥n');
+      const mockCards = this.getMockCards(searchTerm, tcgFilter);
+      const normalizedMockCards = this.normalizeCards(mockCards);
+      const sortedCards = this.sortByRelevance(normalizedMockCards, searchTerm);
+      
+      const startIndex = (page - 1) * pageSize;
+      const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
+
+      return {
+        cards: paginatedCards,
+        totalResults: sortedCards.length,
+        errors: [{ api: 'Demo', error: 'Modo demostraci√≥n activado - configura las API keys y cambia useMockData a false' }],
+        page: page,
+        totalPages: Math.ceil(sortedCards.length / pageSize),
+        usingMockData: true
+      };
+    }
 
     let allCards = [];
     let errors = [];
+    let successfulAPIs = 0;
 
     try {
-      const searchPromises = [];
-
-      // Determinar quÈ APIs consultar
-      if (tcgFilter === 'all' || tcgFilter === 'pokemon') {
-        searchPromises.push(
-          this.searchPokemonAPI(searchTerm, 1, 50)
-            .catch(error => {
-              console.error('Error en PokÈmon API:', error);
-              errors.push({ api: 'Pokemon', error: error.message });
-              return { cards: [] };
-            })
-        );
+      // Buscar en Pokemon API si est√° disponible
+      if ((tcgFilter === 'all' || tcgFilter === 'pokemon') && this.pokemonApiKey) {
+        try {
+          const pokemonResult = await this.searchPokemonAPI(searchTerm, 1, 50);
+          if (pokemonResult.cards && pokemonResult.cards.length > 0) {
+            allCards = allCards.concat(pokemonResult.cards);
+            successfulAPIs++;
+            console.log(`‚úÖ Pokemon API: ${pokemonResult.cards.length} cartas encontradas`);
+          }
+        } catch (error) {
+          console.warn('‚ö†Ô∏è Pokemon API fall√≥:', error.message);
+          errors.push({ api: 'Pokemon', error: 'Error de CORS o conectividad' });
+        }
       }
 
-      // APIs del TCGS para otros juegos
+      // Buscar en TCGS APIs
       const tcgGames = ['onepiece', 'dragonball', 'digimon', 'magic', 'unionarena', 'gundam'];
-      tcgGames.forEach(game => {
-        if (tcgFilter === 'all' || tcgFilter === game) {
-          searchPromises.push(
-            this.searchTCGSAPI(game, searchTerm, 1, 30)
-              .catch(error => {
-                console.error(`Error en ${game} API:`, error);
-                errors.push({ api: game, error: error.message });
-                return { cards: [] };
-              })
-          );
+      for (const game of tcgGames) {
+        if ((tcgFilter === 'all' || tcgFilter === game) && this.tcgApiKey) {
+          try {
+            const tcgResult = await this.searchTCGSAPI(game, searchTerm, 1, 30);
+            if (tcgResult.cards && tcgResult.cards.length > 0) {
+              allCards = allCards.concat(tcgResult.cards);
+              successfulAPIs++;
+              console.log(`‚úÖ ${game} API: ${tcgResult.cards.length} cartas encontradas`);
+            }
+          } catch (error) {
+            console.warn(`‚ö†Ô∏è ${game} API fall√≥:`, error.message);
+            errors.push({ api: game, error: 'Error de CORS o conectividad' });
+          }
         }
-      });
+      }
 
-      // Ejecutar todas las b˙squedas en paralelo
-      const results = await Promise.all(searchPromises);
-      
-      // Combinar resultados
-      results.forEach(result => {
-        if (result.cards && Array.isArray(result.cards)) {
-          allCards = allCards.concat(result.cards);
-        }
-      });
+      // Si todas las APIs fallaron, usar datos de demostraci√≥n
+      if (allCards.length === 0 && successfulAPIs === 0) {
+        console.log('üìù Todas las APIs fallaron - usando datos de demostraci√≥n');
+        const mockCards = this.getMockCards(searchTerm, tcgFilter);
+        allCards = mockCards;
+        errors.push({ api: 'Fallback', error: 'APIs no disponibles - mostrando datos de demostraci√≥n' });
+      }
 
       // Normalizar y eliminar duplicados
       const normalizedCards = this.normalizeCards(allCards);
@@ -77,7 +248,7 @@ class APISearchService {
       // Ordenar por relevancia
       const sortedCards = this.sortByRelevance(uniqueCards, searchTerm);
 
-      // PaginaciÛn
+      // Paginaci√≥n
       const startIndex = (page - 1) * pageSize;
       const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
 
@@ -86,34 +257,48 @@ class APISearchService {
         totalResults: sortedCards.length,
         errors: errors,
         page: page,
-        totalPages: Math.ceil(sortedCards.length / pageSize)
+        totalPages: Math.ceil(sortedCards.length / pageSize),
+        usingMockData: allCards.length > 0 && allCards[0]?.apiSource === 'mock'
       };
 
-      // Guardar en cachÈ
-      this.cache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now()
-      });
+      // Guardar en cache solo si obtuvimos resultados reales
+      if (!result.usingMockData) {
+        this.cache.set(cacheKey, {
+          data: result,
+          timestamp: Date.now()
+        });
+      }
 
-      console.log(` B˙squeda completada: ${sortedCards.length} cartas encontradas`);
+      console.log(`‚úÖ B√∫squeda completada: ${sortedCards.length} cartas encontradas (${successfulAPIs} APIs exitosas)`);
       return result;
 
     } catch (error) {
-      console.error('Error general en b˙squeda de APIs:', error);
+      console.error('Error general en b√∫squeda de APIs:', error);
+      
+      // Fallback final: usar datos de demostraci√≥n
+      console.log('üìù Error general - usando datos de demostraci√≥n como fallback');
+      const mockCards = this.getMockCards(searchTerm, tcgFilter);
+      const normalizedMockCards = this.normalizeCards(mockCards);
+      const sortedCards = this.sortByRelevance(normalizedMockCards, searchTerm);
+      
+      const startIndex = (page - 1) * pageSize;
+      const paginatedCards = sortedCards.slice(startIndex, startIndex + pageSize);
+
       return {
-        cards: [],
-        totalResults: 0,
-        errors: [{ api: 'General', error: error.message }],
-        page: 1,
-        totalPages: 0
+        cards: paginatedCards,
+        totalResults: sortedCards.length,
+        errors: [{ api: 'Error', error: 'Error de conectividad - mostrando datos de demostraci√≥n' }],
+        page: page,
+        totalPages: Math.ceil(sortedCards.length / pageSize),
+        usingMockData: true
       };
     }
   }
 
-  // Buscar en PokÈmon API
+  // Buscar en Pokemon API
   async searchPokemonAPI(searchTerm, page = 1, pageSize = 50) {
     if (!this.pokemonApiKey) {
-      console.warn('† PokÈmon API key no configurada');
+      console.warn('‚ö†Ô∏è Pokemon API key no configurada');
       return { cards: [] };
     }
 
@@ -128,14 +313,14 @@ class APISearchService {
       );
 
       if (!response.ok) {
-        throw new Error(`PokÈmon API error: ${response.status}`);
+        throw new Error(`Pokemon API error: ${response.status}`);
       }
 
       const data = await response.json();
       return { cards: data.data || [] };
 
     } catch (error) {
-      console.error('Error en PokÈmon API:', error);
+      console.error('Error en Pokemon API:', error);
       throw error;
     }
   }
@@ -143,7 +328,7 @@ class APISearchService {
   // Buscar en TCGS API
   async searchTCGSAPI(tcgType, searchTerm, page = 1, limit = 30) {
     if (!this.tcgApiKey) {
-      console.warn('† TCGS API key no configurada');
+      console.warn('‚ö†Ô∏è TCGS API key no configurada');
       return { cards: [] };
     }
 
@@ -158,7 +343,7 @@ class APISearchService {
 
     const endpoint = apiEndpoints[tcgType];
     if (!endpoint) {
-      console.warn(`† TCG tipo desconocido: ${tcgType}`);
+      console.warn(`‚ö†Ô∏è TCG tipo desconocido: ${tcgType}`);
       return { cards: [] };
     }
 
@@ -193,7 +378,7 @@ class APISearchService {
     }
   }
 
-  // Obtener detalles de una carta especÌfica
+  // Obtener detalles de una carta espec√≠fica
   async getCardDetails(cardId, tcgType) {
     if (tcgType === 'pokemon') {
       return this.getPokemonCardDetails(cardId);
@@ -214,14 +399,14 @@ class APISearchService {
       );
 
       if (!response.ok) {
-        throw new Error(`PokÈmon API error: ${response.status}`);
+        throw new Error(`Pokemon API error: ${response.status}`);
       }
 
       const data = await response.json();
       return this.normalizePokemonCard(data.data);
 
     } catch (error) {
-      console.error('Error obteniendo detalles de carta PokÈmon:', error);
+      console.error('Error obteniendo detalles de carta Pokemon:', error);
       return null;
     }
   }
@@ -286,11 +471,11 @@ class APISearchService {
       set: {
         name: card.set?.name || 'Desconocido'
       },
-      rarity: card.rarity || 'Com˙n',
+      rarity: card.rarity || 'Com√∫n',
       tcgType: 'pokemon',
-      apiSource: 'pokemon',
+      apiSource: card.apiSource || 'pokemon',
       
-      // Campos especÌficos de PokÈmon
+      // Campos espec√≠ficos de Pokemon
       hp: card.hp ? parseInt(card.hp) : null,
       types: card.types || [],
       attacks: card.attacks || [],
@@ -298,7 +483,7 @@ class APISearchService {
       artist: card.artist,
       flavorText: card.flavorText,
       
-      // Precios si est·n disponibles
+      // Precios si est√°n disponibles
       tcgplayer: card.tcgplayer,
       legalities: card.legalities
     };
@@ -325,12 +510,12 @@ class APISearchService {
       set: {
         name: card.set || card.set_name || card.expansion || 'Desconocido'
       },
-      rarity: card.rarity || 'Com˙n',
+      rarity: card.rarity || 'Com√∫n',
       tcgType: tcgType,
       tcgName: tcgNames[tcgType] || tcgType,
-      apiSource: 'tcgapis',
+      apiSource: card.apiSource || 'tcgapis',
       
-      // Campos especÌficos por TCG
+      // Campos espec√≠ficos por TCG
       cost: card.cost || card.play_cost,
       power: card.power || card.battle_power,
       color: card.color || card.colours,
@@ -342,7 +527,7 @@ class APISearchService {
     };
   }
 
-  // Eliminar cartas duplicadas bas·ndose en el ID
+  // Eliminar cartas duplicadas bas√°ndose en el ID
   removeDuplicates(cards) {
     const seen = new Set();
     return cards.filter(card => {
@@ -355,7 +540,7 @@ class APISearchService {
     });
   }
 
-  // Ordenar por relevancia (nombre m·s similar primero)
+  // Ordenar por relevancia (nombre m√°s similar primero)
   sortByRelevance(cards, searchTerm) {
     const term = searchTerm.toLowerCase().trim();
     
@@ -367,35 +552,41 @@ class APISearchService {
       if (aName === term && bName !== term) return -1;
       if (bName === term && aName !== term) return 1;
       
-      // Comienza con el tÈrmino
+      // Comienza con el t√©rmino
       const aStarts = aName.startsWith(term);
       const bStarts = bName.startsWith(term);
       if (aStarts && !bStarts) return -1;
       if (bStarts && !aStarts) return 1;
       
-      // Contiene el tÈrmino
+      // Contiene el t√©rmino
       const aContains = aName.includes(term);
       const bContains = bName.includes(term);
       if (aContains && !bContains) return -1;
       if (bContains && !aContains) return 1;
       
-      // Por longitud del nombre (m·s corto primero)
+      // Por longitud del nombre (m√°s corto primero)
       return aName.length - bName.length;
     });
   }
 
-  // Limpiar cachÈ manualmente
+  // Limpiar cache manualmente
   clearCache() {
     this.cache.clear();
-    console.log('>˘ CachÈ de API limpiado');
+    console.log('üßπ Cache de API limpiado');
   }
 
-  // Obtener estadÌsticas del cachÈ
+  // Obtener estad√≠sticas del cache
   getCacheStats() {
     return {
       size: this.cache.size,
       entries: Array.from(this.cache.keys())
     };
+  }
+
+  // M√©todo para activar/desactivar datos de demostraci√≥n
+  setUseMockData(useMock) {
+    this.useMockData = useMock;
+    console.log(`üìù Modo demostraci√≥n: ${useMock ? 'ACTIVADO' : 'DESACTIVADO'}`);
   }
 }
 

@@ -351,10 +351,14 @@ export default function Marketplace() {
       setTotalPages(searchResults.totalPages || Math.ceil(finalCards.length / 12));
       setCurrentPage(page);
 
-      // Mostrar errores de API si los hay
+      // Mostrar información sobre el estado de los datos
       if (searchResults.errors && searchResults.errors.length > 0) {
-        const errorMessages = searchResults.errors.map(err => `${err.api}: ${err.error}`).join('; ');
-        setSearchError(`Algunos servicios no están disponibles: ${errorMessages}`);
+        if (searchResults.usingMockData) {
+          setSearchError('💡 Mostrando datos de demostración. Las APIs externas no están disponibles debido a restricciones CORS.');
+        } else {
+          const errorMessages = searchResults.errors.map(err => `${err.api}: ${err.error}`).join('; ');
+          setSearchError(`⚠️ Algunos servicios no están disponibles: ${errorMessages}`);
+        }
       }
       
       if (finalCards.length === 0) {
@@ -522,10 +526,20 @@ export default function Marketplace() {
           </div>
           
 
-          {/* Mostrar errores de búsqueda */}
+          {/* Mostrar información sobre el estado de los datos */}
           {searchError && (
-            <Alert variant="warning" className="mb-3">
-              <strong>⚠️ Atención:</strong> {searchError}
+            <Alert 
+              variant={searchError.includes('demostración') ? "info" : "warning"} 
+              className="mb-3"
+            >
+              <strong>
+                {searchError.includes('demostración') ? '💡 Información:' : '⚠️ Atención:'}
+              </strong> {searchError}
+              {searchError.includes('demostración') && (
+                <div className="mt-2 small">
+                  <strong>Para acceder a datos reales:</strong> Configura las API keys en las variables de entorno y cambia <code>useMockData</code> a <code>false</code> en el servicio.
+                </div>
+              )}
             </Alert>
           )}
           
@@ -533,7 +547,12 @@ export default function Marketplace() {
             <div className="d-flex justify-content-between align-items-center">
               <div className="text-muted small">
                 <strong>Cartas encontradas:</strong> Mostrando {(currentPage - 1) * 12 + 1} - {Math.min(currentPage * 12, cards.length)} de {totalResults} resultados
-                <span className="ms-2">📡 Datos de APIs externas + vendedores locales</span>
+                <span className="ms-2">
+                  {searchError.includes('demostración') ? 
+                    '🎭 Datos de demostración' : 
+                    '📡 Datos de APIs externas + vendedores locales'
+                  }
+                </span>
               </div>
             </div>
           )}
@@ -813,7 +832,9 @@ export default function Marketplace() {
                         </div>
                       ) : (
                         <div className="text-center text-muted py-3 mb-3">
-                          <div className="badge bg-warning text-dark mb-2">📡 Solo en API</div>
+                          <div className="badge bg-warning text-dark mb-2">
+                            {card.apiSource === 'mock' ? '🎭 Datos de demostración' : '📡 Solo en API'}
+                          </div>
                           <small className="d-block">💤 Sin vendedores locales</small>
                           <div className="mt-2">
                             <small className="text-info">Haz clic para ver detalles completos</small>
