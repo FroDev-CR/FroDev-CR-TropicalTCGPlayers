@@ -218,6 +218,7 @@ export default function CardDetailModal({ show, onHide, card }) {
 
     return (
       <Tabs defaultActiveKey="details" className="mb-3">
+        {/* Tab de Detalles */}
         <Tab eventKey="details" title="Detalles">
           <div className="card-details">
             {/* Información básica */}
@@ -433,8 +434,8 @@ export default function CardDetailModal({ show, onHide, card }) {
                 <h6 className="text-muted mb-2">
                   {card.ability ? 'Habilidad' : 'Efecto'}
                 </h6>
-                <div className="border rounded p-2 bg-light">
-                  <small>{String(card.ability || card.effect || '')}</small>
+                <div className="border rounded p-2" style={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(5px)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                  <small style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{String(card.ability || card.effect || '')}</small>
                 </div>
               </div>
             )}
@@ -451,59 +452,235 @@ export default function CardDetailModal({ show, onHide, card }) {
           </div>
         </Tab>
 
-        {/* Tab de precios (si están disponibles) */}
-        {card.tcgplayer && (
-          <Tab eventKey="prices" title="Precios de Referencia">
-            <div className="price-reference">
-              <h6 className="text-muted mb-3">Precios de TCGPlayer (USD)</h6>
-              {card.tcgplayer.prices && Object.entries(card.tcgplayer.prices).map(([type, prices]) => (
-                <div key={type} className="mb-3 border rounded p-2">
-                  <div className="fw-bold text-capitalize mb-2">{type.replace(/([A-Z])/g, ' $1')}</div>
+        {/* Tab de Precios para TODOS los TCGs */}
+        <Tab eventKey="prices" title="Precios">
+          <div className="price-reference">
+            {/* Precios de TCGPlayer */}
+            <div className="mb-4">
+              <h6 className="text-muted mb-3">💰 Precios TCGPlayer.com</h6>
+              {card.tcgplayer && card.tcgplayer.prices ? (
+                Object.entries(card.tcgplayer.prices).map(([type, prices]) => (
+                  <div key={type} className="mb-3 border rounded p-2" style={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(5px)' }}>
+                    <div className="fw-bold text-capitalize mb-2">{type.replace(/([A-Z])/g, ' $1')}</div>
+                    <Row className="g-2 text-center">
+                      {prices.low && (
+                        <Col>
+                          <small className="text-muted">Bajo</small>
+                          <div className="fw-bold text-success">${prices.low}</div>
+                        </Col>
+                      )}
+                      {prices.market && (
+                        <Col>
+                          <small className="text-muted">Mercado</small>
+                          <div className="fw-bold text-primary">${prices.market}</div>
+                        </Col>
+                      )}
+                      {prices.high && (
+                        <Col>
+                          <small className="text-muted">Alto</small>
+                          <div className="fw-bold text-danger">${prices.high}</div>
+                        </Col>
+                      )}
+                    </Row>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-3">
+                  <span className="text-muted">-</span>
+                  <div><small className="text-muted">No disponible</small></div>
+                </div>
+              )}
+            </div>
+            
+            {/* Precios Mercado CR */}
+            <div className="mb-4">
+              <h6 className="text-muted mb-3">🇨🇷 Precio Mercado CR</h6>
+              <div className="border rounded p-3" style={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(5px)' }}>
+                {sellers && sellers.length > 0 ? (
                   <Row className="g-2 text-center">
-                    {prices.low && (
-                      <Col>
-                        <small className="text-muted">Bajo</small>
-                        <div className="fw-bold text-success">₡{prices.low}</div>
-                      </Col>
-                    )}
-                    {prices.market && (
-                      <Col>
-                        <small className="text-muted">Mercado</small>
-                        <div className="fw-bold text-primary">₡{prices.market}</div>
-                      </Col>
-                    )}
-                    {prices.high && (
-                      <Col>
-                        <small className="text-muted">Alto</small>
-                        <div className="fw-bold text-danger">₡{prices.high}</div>
-                      </Col>
-                    )}
+                    <Col>
+                      <small className="text-muted">Precio Promedio</small>
+                      <div className="fw-bold text-success">
+                        ₡{Math.round(sellers.reduce((sum, seller) => sum + seller.price, 0) / sellers.length)}
+                      </div>
+                    </Col>
+                    <Col>
+                      <small className="text-muted">Precio Más Bajo</small>
+                      <div className="fw-bold text-primary">₡{Math.min(...sellers.map(s => s.price))}</div>
+                    </Col>
+                    <Col>
+                      <small className="text-muted">Precio Más Alto</small>
+                      <div className="fw-bold text-danger">₡{Math.max(...sellers.map(s => s.price))}</div>
+                    </Col>
                   </Row>
-                </div>
-              ))}
-              <small className="text-muted">
-                Última actualización: {card.tcgplayer.updatedAt}
-              </small>
+                ) : (
+                  <div className="text-center py-2">
+                    <span className="text-muted">-</span>
+                    <div><small className="text-muted">No hay vendedores activos</small></div>
+                  </div>
+                )}
+              </div>
             </div>
-          </Tab>
-        )}
+          </div>
+        </Tab>
 
-        {/* Tab de legalidades (solo para Pokémon) */}
-        {card.legalities && Object.keys(card.legalities).length > 0 && (
-          <Tab eventKey="legalities" title="Legalidades">
-            <div className="legalities">
-              <h6 className="text-muted mb-3">Formatos Legales</h6>
-              {Object.entries(card.legalities).map(([format, status]) => (
-                <div key={format} className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="text-capitalize">{format}:</span>
-                  <Badge bg={status === 'Legal' ? 'success' : 'danger'}>
-                    {status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </Tab>
-        )}
+        {/* Tab de Vendedores para TODOS los TCGs */}
+        <Tab eventKey="sellers" title="Vendedores">
+          <div className="sellers-section">
+            <h6 className="mb-3 d-flex align-items-center gap-2">
+              <FaShoppingCart />
+              Vendedores Disponibles
+              {sellers.length > 0 && (
+                <Badge bg="primary">{sellers.length}</Badge>
+              )}
+            </h6>
+
+            {loadingSellers ? (
+              <div className="text-center py-4">
+                <Spinner animation="border" />
+                <p className="mt-2 text-muted">Buscando vendedores...</p>
+              </div>
+            ) : sellersError ? (
+              <Alert variant="warning" className="d-flex align-items-center gap-2">
+                <FaInfoCircle />
+                {sellersError}
+              </Alert>
+            ) : sellers.length === 0 ? (
+              <Alert variant="info" className="text-center">
+                <FaInfoCircle className="mb-2" size={24} />
+                <p className="mb-0">
+                  No hay vendedores disponibles para esta carta actualmente.
+                </p>
+              </Alert>
+            ) : (
+              <div className="sellers-list">
+                {sellers.map((seller, index) => (
+                  <Card key={seller.id} className="mb-3 seller-card">
+                    <Card.Body>
+                      <Row className="align-items-center">
+                        <Col md={8}>
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <h6 className="mb-1 d-flex align-items-center gap-2">
+                                <FaUser size={14} />
+                                {seller.sellerName}
+                                {seller.sellerRating > 0 && (
+                                  <div className="d-flex align-items-center gap-1">
+                                    <ReactStars
+                                      count={5}
+                                      value={seller.sellerRating}
+                                      size={16}
+                                      edit={false}
+                                      activeColor="#ffd700"
+                                    />
+                                    <small className="text-muted">
+                                      ({seller.sellerReviews})
+                                    </small>
+                                  </div>
+                                )}
+                              </h6>
+                              <div className="d-flex gap-3 align-items-center mb-2">
+                                <div>
+                                  <small className="text-muted">Precio:</small>
+                                  <div className="h5 mb-0 text-success">₡{seller.price}</div>
+                                </div>
+                                <div>
+                                  <small className="text-muted">Condición:</small>
+                                  <div>
+                                    <Badge bg="primary">{seller.condition}</Badge>
+                                  </div>
+                                </div>
+                                <div>
+                                  <small className="text-muted">Stock:</small>
+                                  <div>
+                                    <Badge bg={seller.availableQuantity > 5 ? 'success' : seller.availableQuantity > 0 ? 'warning' : 'danger'}>
+                                      {seller.availableQuantity || seller.quantity} disponible(s)
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              <small className="text-muted">
+                                📍 {seller.sellerLocation}
+                              </small>
+                            </div>
+                          </div>
+                        </Col>
+                        
+                        <Col md={4}>
+                          <div className="d-flex flex-column gap-2">
+                            {/* Botón agregar al carrito */}
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => handleAddToCart(seller)}
+                              disabled={!user || (seller.availableQuantity === 0)}
+                              className="d-flex align-items-center justify-content-center gap-1"
+                            >
+                              <FaShoppingCart size={12} />
+                              {!user ? 'Inicia Sesión' : 
+                               seller.availableQuantity === 0 ? 'Sin Stock' : 
+                               'Agregar al Carrito'}
+                            </Button>
+
+                            {/* Botones de contacto */}
+                            <div className="d-flex gap-1">
+                              {seller.whatsapp && (
+                                <Button
+                                  variant="outline-success"
+                                  size="sm"
+                                  href={getWhatsAppLink(seller)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-fill d-flex align-items-center justify-content-center"
+                                  title="Contactar por WhatsApp"
+                                >
+                                  <FaWhatsapp size={14} />
+                                </Button>
+                              )}
+                              
+                              {seller.email && (
+                                <Button
+                                  variant="outline-primary"
+                                  size="sm"
+                                  href={getEmailLink(seller)}
+                                  className="flex-fill d-flex align-items-center justify-content-center"
+                                  title="Contactar por Email"
+                                >
+                                  <FaEnvelope size={14} />
+                                </Button>
+                              )}
+                              
+                              {seller.phone && (
+                                <Button
+                                  variant="outline-secondary"
+                                  size="sm"
+                                  href={`tel:${seller.phone}`}
+                                  className="flex-fill d-flex align-items-center justify-content-center"
+                                  title="Llamar por teléfono"
+                                >
+                                  <FaPhone size={14} />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </Col>
+                      </Row>
+
+                      {/* Notas del vendedor */}
+                      {seller.notes && (
+                        <div className="mt-2 pt-2 border-top">
+                          <small className="text-muted">
+                            <strong>Notas:</strong> {seller.notes}
+                          </small>
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </Tab>
       </Tabs>
     );
   };
@@ -543,11 +720,37 @@ export default function CardDetailModal({ show, onHide, card }) {
           }}
         ></div>
         
-        <Modal.Header closeButton className="border-0" style={{ background: 'transparent', position: 'relative', zIndex: 3 }}>
-          <Modal.Title className="d-flex align-items-center gap-2" style={{ color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-            {renderTCGBadge(card.tcgType)}
-            {card.name}
-          </Modal.Title>
+        <Modal.Header closeButton className="border-0 position-relative" style={{ background: 'transparent', position: 'relative', zIndex: 3 }}>
+          <div className="w-100 d-flex justify-content-center align-items-center">
+            <div className="text-center">
+              <div className="mb-2">{renderTCGBadge(card.tcgType)}</div>
+              <Modal.Title className="h3" style={{ color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.8)', fontSize: '1.8rem', fontWeight: 'bold' }}>
+                {card.name}
+              </Modal.Title>
+            </div>
+          </div>
+          {/* Botón de favoritos */}
+          <Button
+            variant={favorites.includes(card.id) ? "danger" : "outline-light"}
+            onClick={() => toggleFavorite(card.id)}
+            className="position-absolute"
+            style={{ 
+              top: '10px',
+              right: '50px',
+              background: favorites.includes(card.id) ? 'rgba(220, 53, 69, 0.9)' : 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '50%',
+              width: '45px',
+              height: '45px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title={favorites.includes(card.id) ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
+          >
+            <FaHeart size={16} />
+          </Button>
         </Modal.Header>
         
         <Modal.Body className="p-0" style={{ position: 'relative', zIndex: 2 }}>
@@ -587,20 +790,6 @@ export default function CardDetailModal({ show, onHide, card }) {
                   }}
                 />
               </div>
-              
-              <Button
-                variant={favorites.includes(card.id) ? "danger" : "light"}
-                onClick={() => toggleFavorite(card.id)}
-                className="btn-lg d-flex align-items-center gap-2"
-                style={{ 
-                  background: favorites.includes(card.id) ? 'rgba(220, 53, 69, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                  backdropFilter: 'blur(10px)',
-                  border: '2px solid rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <FaHeart />
-                {favorites.includes(card.id) ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
-              </Button>
               </div>
             </div>
           </Col>
@@ -623,161 +812,6 @@ export default function CardDetailModal({ show, onHide, card }) {
               {/* Tabs con detalles de la carta */}
               {renderCardDetails()}
 
-              {/* Sección de vendedores */}
-              <div className="sellers-section mt-4">
-                <h5 className="mb-3 d-flex align-items-center gap-2">
-                  <FaShoppingCart />
-                  Vendedores Disponibles
-                  {sellers.length > 0 && (
-                    <Badge bg="primary">{sellers.length}</Badge>
-                  )}
-                </h5>
-
-                {loadingSellers ? (
-                  <div className="text-center py-4">
-                    <Spinner animation="border" />
-                    <p className="mt-2 text-muted">Buscando vendedores...</p>
-                  </div>
-                ) : sellersError ? (
-                  <Alert variant="warning" className="d-flex align-items-center gap-2">
-                    <FaInfoCircle />
-                    {sellersError}
-                  </Alert>
-                ) : sellers.length === 0 ? (
-                  <Alert variant="info" className="text-center">
-                    <FaInfoCircle className="mb-2" size={24} />
-                    <p className="mb-0">
-                      No hay vendedores disponibles para esta carta actualmente.
-                    </p>
-                  </Alert>
-                ) : (
-                  <div className="sellers-list">
-                    {sellers.map((seller, index) => (
-                      <Card key={seller.id} className="mb-3 seller-card">
-                        <Card.Body>
-                          <Row className="align-items-center">
-                            <Col md={8}>
-                              <div className="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                  <h6 className="mb-1 d-flex align-items-center gap-2">
-                                    <FaUser size={14} />
-                                    {seller.sellerName}
-                                    {seller.sellerRating > 0 && (
-                                      <div className="d-flex align-items-center gap-1">
-                                        <ReactStars
-                                          count={5}
-                                          value={seller.sellerRating}
-                                          size={16}
-                                          edit={false}
-                                          activeColor="#ffd700"
-                                        />
-                                        <small className="text-muted">
-                                          ({seller.sellerReviews})
-                                        </small>
-                                      </div>
-                                    )}
-                                  </h6>
-                                  <div className="d-flex gap-3 align-items-center mb-2">
-                                    <div>
-                                      <small className="text-muted">Precio:</small>
-                                      <div className="h5 mb-0 text-success">₡{seller.price}</div>
-                                    </div>
-                                    <div>
-                                      <small className="text-muted">Condición:</small>
-                                      <div>
-                                        <Badge bg="primary">{seller.condition}</Badge>
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <small className="text-muted">Stock:</small>
-                                      <div>
-                                        <Badge bg={seller.availableQuantity > 5 ? 'success' : seller.availableQuantity > 0 ? 'warning' : 'danger'}>
-                                          {seller.availableQuantity || seller.quantity} disponible(s)
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <small className="text-muted">
-                                    📍 {seller.sellerLocation}
-                                  </small>
-                                </div>
-                              </div>
-                            </Col>
-                            
-                            <Col md={4}>
-                              <div className="d-flex flex-column gap-2">
-                                {/* Botón agregar al carrito */}
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  onClick={() => handleAddToCart(seller)}
-                                  disabled={!user || (seller.availableQuantity === 0)}
-                                  className="d-flex align-items-center justify-content-center gap-1"
-                                >
-                                  <FaShoppingCart size={12} />
-                                  {!user ? 'Inicia Sesión' : 
-                                   seller.availableQuantity === 0 ? 'Sin Stock' : 
-                                   'Agregar al Carrito'}
-                                </Button>
-
-                                {/* Botones de contacto */}
-                                <div className="d-flex gap-1">
-                                  {seller.whatsapp && (
-                                    <Button
-                                      variant="outline-success"
-                                      size="sm"
-                                      href={getWhatsAppLink(seller)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex-fill d-flex align-items-center justify-content-center"
-                                      title="Contactar por WhatsApp"
-                                    >
-                                      <FaWhatsapp size={14} />
-                                    </Button>
-                                  )}
-                                  
-                                  {seller.email && (
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      href={getEmailLink(seller)}
-                                      className="flex-fill d-flex align-items-center justify-content-center"
-                                      title="Contactar por Email"
-                                    >
-                                      <FaEnvelope size={14} />
-                                    </Button>
-                                  )}
-                                  
-                                  {seller.phone && (
-                                    <Button
-                                      variant="outline-secondary"
-                                      size="sm"
-                                      href={`tel:${seller.phone}`}
-                                      className="flex-fill d-flex align-items-center justify-content-center"
-                                      title="Llamar por teléfono"
-                                    >
-                                      <FaPhone size={14} />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </Col>
-                          </Row>
-
-                          {/* Notas del vendedor */}
-                          {seller.notes && (
-                            <div className="mt-2 pt-2 border-top">
-                              <small className="text-muted">
-                                <strong>Notas:</strong> {seller.notes}
-                              </small>
-                            </div>
-                          )}
-                        </Card.Body>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           </Col>
         </Row>
