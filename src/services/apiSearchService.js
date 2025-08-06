@@ -531,31 +531,55 @@ class APISearchService {
   }
 
   normalizePokemonCard(card) {
+    // Función helper para convertir valores a string seguro
+    const safeString = (value) => {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    };
+
+    // Función para procesar arrays de forma segura
+    const safeArray = (value) => {
+      if (!Array.isArray(value)) return [];
+      return value.map(item => {
+        if (typeof item === 'object') {
+          // Para objetos como attacks/abilities, mantener estructura pero convertir valores
+          const safeItem = {};
+          for (const [key, val] of Object.entries(item)) {
+            safeItem[key] = safeString(val);
+          }
+          return safeItem;
+        }
+        return safeString(item);
+      });
+    };
+
     return {
-      id: card.id,
-      name: card.name,
+      id: safeString(card.id),
+      name: safeString(card.name),
       images: {
-        small: card.images?.small || '',
-        large: card.images?.large || card.images?.small || ''
+        small: safeString(card.images?.small || ''),
+        large: safeString(card.images?.large || card.images?.small || '')
       },
       set: {
-        name: card.set?.name || 'Desconocido'
+        name: safeString(card.set?.name || 'Desconocido')
       },
-      rarity: card.rarity || 'Común',
+      rarity: safeString(card.rarity || 'Común'),
       tcgType: 'pokemon',
-      apiSource: card.apiSource || 'pokemon',
+      tcgName: 'Pokémon TCG',
+      apiSource: safeString(card.apiSource || 'pokemon'),
       
       // Campos específicos de Pokemon
-      hp: card.hp ? parseInt(card.hp) : null,
-      types: card.types || [],
-      attacks: card.attacks || [],
-      abilities: card.abilities || [],
-      artist: card.artist,
-      flavorText: card.flavorText,
+      hp: safeString(card.hp || ''),
+      types: safeArray(card.types || []),
+      attacks: safeArray(card.attacks || []),
+      abilities: safeArray(card.abilities || []),
+      artist: safeString(card.artist || ''),
+      flavorText: safeString(card.flavorText || ''),
       
-      // Precios si están disponibles
-      tcgplayer: card.tcgplayer,
-      legalities: card.legalities
+      // Precios si están disponibles (mantener objetos para el modal)
+      tcgplayer: card.tcgplayer || null,
+      legalities: card.legalities || null
     };
   }
 
@@ -570,30 +594,45 @@ class APISearchService {
       gundam: 'Gundam'
     };
 
+    // Función helper para convertir valores a string seguro
+    const safeString = (value) => {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    };
+
+    // Función helper para obtener imagen
+    const getImageUrl = (card) => {
+      if (card.image) return safeString(card.image);
+      if (card.images?.small) return safeString(card.images.small);
+      if (card.card_image) return safeString(card.card_image);
+      return '';
+    };
+
     return {
-      id: card.id || card._id || `${tcgType}-${Date.now()}`,
-      name: card.name || card.card_name || 'Sin nombre',
+      id: safeString(card.id || card._id || `${tcgType}-${Date.now()}`),
+      name: safeString(card.name || card.card_name || 'Sin nombre'),
       images: {
-        small: card.image || card.images?.small || card.card_image || '',
-        large: card.image || card.images?.large || card.card_image || ''
+        small: getImageUrl(card),
+        large: getImageUrl(card)
       },
       set: {
-        name: card.set || card.set_name || card.expansion || 'Desconocido'
+        name: safeString(card.set || card.set_name || card.expansion || 'Desconocido')
       },
-      rarity: card.rarity || 'Común',
+      rarity: safeString(card.rarity || 'Común'),
       tcgType: tcgType,
       tcgName: tcgNames[tcgType] || tcgType,
-      apiSource: card.apiSource || 'tcgapis',
+      apiSource: safeString(card.apiSource || 'tcgapis'),
       
-      // Campos específicos por TCG
-      cost: card.cost || card.play_cost,
-      power: card.power || card.battle_power,
-      color: card.color || card.colours,
-      type: card.type || card.card_type,
-      attribute: card.attribute,
-      ability: card.ability || card.card_text,
-      effect: card.effect || card.effect_text,
-      flavorText: card.flavor_text || card.flavour_text
+      // Campos específicos por TCG - todos convertidos a string
+      cost: safeString(card.cost || card.play_cost || ''),
+      power: safeString(card.power || card.battle_power || ''),
+      color: safeString(card.color || card.colours || ''),
+      type: safeString(card.type || card.card_type || ''),
+      attribute: safeString(card.attribute || ''),
+      ability: safeString(card.ability || card.card_text || ''),
+      effect: safeString(card.effect || card.effect_text || ''),
+      flavorText: safeString(card.flavor_text || card.flavour_text || '')
     };
   }
 

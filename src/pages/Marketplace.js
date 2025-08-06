@@ -744,7 +744,7 @@ export default function Marketplace() {
                       
                       {/* Badge del TCG en esquina superior izquierda */}
                       <div className="position-absolute top-0 start-0 p-2">
-                        <span className="badge bg-primary">{card.tcgName || 'TCG'}</span>
+                        <span className="badge bg-primary">{typeof card.tcgName === 'object' ? JSON.stringify(card.tcgName) : String(card.tcgName || 'TCG')}</span>
                       </div>
                       
                       {/* Botón de favoritos */}
@@ -773,9 +773,9 @@ export default function Marketplace() {
                       onClick={() => openCardModal(card)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <Card.Title className="fs-5 mb-2">{card.name}</Card.Title>
+                      <Card.Title className="fs-5 mb-2">{typeof card.name === 'object' ? JSON.stringify(card.name) : String(card.name)}</Card.Title>
                       <Card.Text className="text-muted small mb-3">
-                        {card.set?.name} • {card.rarity || 'Sin rareza'}
+                        {typeof card.set?.name === 'object' ? JSON.stringify(card.set.name) : String(card.set?.name || '')} • {typeof card.rarity === 'object' ? JSON.stringify(card.rarity) : String(card.rarity || 'Sin rareza')}
                       </Card.Text>
                       
                       {/* Información de precios y vendedores */}

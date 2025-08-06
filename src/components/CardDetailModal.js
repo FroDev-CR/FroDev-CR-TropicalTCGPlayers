@@ -207,7 +207,7 @@ export default function CardDetailModal({ show, onHide, card }) {
                           <div>
                             {card.types.map((type, index) => (
                               <Badge key={index} bg="light" text="dark" className="me-1">
-                                {String(type)}
+                                {typeof type === 'object' ? JSON.stringify(type) : String(type)}
                               </Badge>
                             ))}
                           </div>
@@ -222,9 +222,9 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <h6 className="text-muted mb-2">Ataques</h6>
                     {card.attacks.slice(0, 2).map((attack, index) => (
                       <div key={index} className="border rounded p-2 mb-2">
-                        <div className="fw-bold">{String(attack.name || '')}</div>
-                        {attack.damage && <div className="text-end fw-bold">{String(attack.damage)}</div>}
-                        {attack.text && <small className="text-muted">{String(attack.text)}</small>}
+                        <div className="fw-bold">{typeof attack === 'object' ? String(attack.name || attack) : String(attack)}</div>
+                        {typeof attack === 'object' && attack.damage && <div className="text-end fw-bold">{String(attack.damage)}</div>}
+                        {typeof attack === 'object' && attack.text && <small className="text-muted">{String(attack.text)}</small>}
                       </div>
                     ))}
                   </div>
@@ -235,8 +235,8 @@ export default function CardDetailModal({ show, onHide, card }) {
                     <h6 className="text-muted mb-2">Habilidades</h6>
                     {card.abilities.map((ability, index) => (
                       <div key={index} className="border rounded p-2 mb-2">
-                        <div className="fw-bold">{String(ability.name || '')}</div>
-                        <small className="text-muted">{String(ability.text || '')}</small>
+                        <div className="fw-bold">{typeof ability === 'object' ? String(ability.name || ability) : String(ability)}</div>
+                        <small className="text-muted">{typeof ability === 'object' ? String(ability.text || '') : ''}</small>
                       </div>
                     ))}
                   </div>
