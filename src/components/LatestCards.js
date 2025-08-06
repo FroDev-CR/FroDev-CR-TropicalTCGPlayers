@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
-const LatestCards = () => {
+const LatestCards = ({ onCardClick }) => {
   const [latestCards, setLatestCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -95,7 +95,18 @@ const LatestCards = () => {
               transition={{ delay: index * 0.1, duration: 0.4 }}
             >
               {/* Vista simplificada: solo imagen de carta + datos esenciales */}
-              <div className="simple-card-container">
+              <div 
+                className="simple-card-container"
+                onClick={() => onCardClick && onCardClick({
+                  id: card.id,
+                  name: card.cardName,
+                  images: { small: card.cardImage, large: card.cardImage },
+                  set: { name: card.setName || 'Desconocido' },
+                  rarity: card.rarity || 'Sin rareza',
+                  tcgType: card.tcgType || 'unknown'
+                })}
+                style={{ cursor: onCardClick ? 'pointer' : 'default' }}
+              >
                 <div className="simple-card-image-wrapper">
                   <img 
                     src={card.cardImage || 'https://via.placeholder.com/300x400'} 

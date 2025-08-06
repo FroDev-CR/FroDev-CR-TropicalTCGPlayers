@@ -24,7 +24,28 @@ export default function CardDetailModal({ show, onHide, card }) {
   const [sellers, setSellers] = useState([]);
   const [loadingSellers, setLoadingSellers] = useState(false);
   const [sellersError, setSellersError] = useState('');
+  const [imageZoomed, setImageZoomed] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { addToCart, user } = useCart();
+
+  // Funciones para el zoom de imagen
+  const handleMouseEnter = () => {
+    setImageZoomed(true);
+  };
+
+  const handleMouseLeave = () => {
+    setImageZoomed(false);
+    setMousePosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!imageZoomed) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setMousePosition({ x, y });
+  };
 
   // Cargar favoritos del localStorage
   useEffect(() => {
@@ -182,9 +203,37 @@ export default function CardDetailModal({ show, onHide, card }) {
                   </div>
                 </Col>
                 {card.artist && (
-                  <Col xs={12}>
+                  <Col xs={6}>
                     <small className="text-muted">Artista:</small>
                     <div>{card.artist}</div>
+                  </Col>
+                )}
+                {card.id && (
+                  <Col xs={6}>
+                    <small className="text-muted">ID/Código:</small>
+                    <div><code>{card.id}</code></div>
+                  </Col>
+                )}
+                {card.number && (
+                  <Col xs={6}>
+                    <small className="text-muted">Número:</small>
+                    <div>#{card.number}</div>
+                  </Col>
+                )}
+                {card.supertype && (
+                  <Col xs={6}>
+                    <small className="text-muted">Supertipo:</small>
+                    <div><Badge bg="info">{card.supertype}</Badge></div>
+                  </Col>
+                )}
+                {card.subtypes && card.subtypes.length > 0 && (
+                  <Col xs={12}>
+                    <small className="text-muted">Subtipos:</small>
+                    <div>
+                      {card.subtypes.map((subtype, index) => (
+                        <Badge key={index} bg="outline-primary" className="me-1">{subtype}</Badge>
+                      ))}
+                    </div>
                   </Col>
                 )}
               </Row>
@@ -244,10 +293,55 @@ export default function CardDetailModal({ show, onHide, card }) {
               </>
             )}
 
-            {/* Detalles para otros TCGs */}
-            {card.tcgType !== 'pokemon' && (
+            {/* Detalles específicos de One Piece */}
+            {card.tcgType === 'onepiece' && (
               <div className="mb-3">
-                <h6 className="text-muted mb-2">Características</h6>
+                <h6 className="text-muted mb-2">Detalles One Piece</h6>
+                <Row className="g-2">
+                  {card.cost && (
+                    <Col xs={4}>
+                      <small className="text-muted">Costo:</small>
+                      <div className="fw-bold">{String(card.cost)}</div>
+                    </Col>
+                  )}
+                  {card.power && (
+                    <Col xs={4}>
+                      <small className="text-muted">Poder:</small>
+                      <div className="fw-bold">{String(card.power)}</div>
+                    </Col>
+                  )}
+                  {card.counter && (
+                    <Col xs={4}>
+                      <small className="text-muted">Counter:</small>
+                      <div className="fw-bold">{String(card.counter)}</div>
+                    </Col>
+                  )}
+                  {card.color && (
+                    <Col xs={6}>
+                      <small className="text-muted">Color:</small>
+                      <div><Badge bg="warning" text="dark">{String(card.color)}</Badge></div>
+                    </Col>
+                  )}
+                  {card.type && (
+                    <Col xs={6}>
+                      <small className="text-muted">Tipo:</small>
+                      <div><Badge bg="info">{String(card.type)}</Badge></div>
+                    </Col>
+                  )}
+                  {card.family && (
+                    <Col xs={12}>
+                      <small className="text-muted">Familia:</small>
+                      <div><Badge bg="light" text="dark">{String(card.family)}</Badge></div>
+                    </Col>
+                  )}
+                </Row>
+              </div>
+            )}
+
+            {/* Detalles para otros TCGs que no son Pokémon ni One Piece */}
+            {card.tcgType !== 'pokemon' && card.tcgType !== 'onepiece' && (
+              <div className="mb-3">
+                <h6 className="text-muted mb-2">Características Específicas</h6>
                 <Row className="g-2">
                   {card.cost && (
                     <Col xs={6}>
@@ -264,17 +358,37 @@ export default function CardDetailModal({ show, onHide, card }) {
                   {card.color && (
                     <Col xs={6}>
                       <small className="text-muted">Color:</small>
-                      <div>
-                        <Badge bg="light" text="dark">{String(card.color)}</Badge>
-                      </div>
+                      <div><Badge bg="light" text="dark">{String(card.color)}</Badge></div>
                     </Col>
                   )}
                   {card.type && (
                     <Col xs={6}>
                       <small className="text-muted">Tipo:</small>
-                      <div>
-                        <Badge bg="info">{String(card.type)}</Badge>
-                      </div>
+                      <div><Badge bg="info">{String(card.type)}</Badge></div>
+                    </Col>
+                  )}
+                  {card.level && (
+                    <Col xs={6}>
+                      <small className="text-muted">Nivel:</small>
+                      <div className="fw-bold">{String(card.level)}</div>
+                    </Col>
+                  )}
+                  {card.dp && (
+                    <Col xs={6}>
+                      <small className="text-muted">DP:</small>
+                      <div className="fw-bold">{String(card.dp)}</div>
+                    </Col>
+                  )}
+                  {card.ap && (
+                    <Col xs={6}>
+                      <small className="text-muted">AP:</small>
+                      <div className="fw-bold">{String(card.ap)}</div>
+                    </Col>
+                  )}
+                  {card.bp && (
+                    <Col xs={6}>
+                      <small className="text-muted">BP:</small>
+                      <div className="fw-bold">{String(card.bp)}</div>
                     </Col>
                   )}
                 </Row>
@@ -386,33 +500,88 @@ export default function CardDetailModal({ show, onHide, card }) {
             <div 
               className="p-4 d-flex flex-column align-items-center justify-content-center flex-grow-1"
               style={{ 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                minHeight: '500px'
+                backgroundImage: 'url("/tropical tcg/background celeeste.png")',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                minHeight: '500px',
+                position: 'relative'
               }}
             >
-              <img 
-                src={card.images?.large || card.images?.small || '/placeholder-card.png'}
-                alt={card.name}
-                className="img-fluid rounded shadow-lg mb-3"
-                style={{ 
-                  maxWidth: '100%', 
-                  maxHeight: '450px', 
-                  objectFit: 'contain',
-                  border: '3px solid rgba(255,255,255,0.3)'
+              {/* Overlay semi-transparente para mejor legibilidad */}
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  backdropFilter: 'blur(2px)'
                 }}
-                onError={(e) => {
-                  e.target.src = '/placeholder-card.png';
+              ></div>
+              
+              <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', width: '100%' }}>
+              <div 
+                className="card-image-container position-relative mb-3"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '450px',
+                  overflow: 'hidden',
+                  borderRadius: '12px',
+                  border: '3px solid rgba(255,255,255,0.3)',
+                  cursor: 'zoom-in',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
                 }}
-              />
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                onMouseMove={handleMouseMove}
+              >
+                <img 
+                  src={card.images?.large || card.images?.small || '/placeholder-card.png'}
+                  alt={card.name}
+                  className="img-fluid"
+                  style={{ 
+                    width: '100%', 
+                    height: '450px', 
+                    objectFit: 'contain',
+                    transition: 'transform 0.3s ease',
+                    transform: imageZoomed ? `scale(2) translate(-${(mousePosition.x - 50)}%, -${(mousePosition.y - 50)}%)` : 'scale(1)',
+                    transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
+                  }}
+                  onError={(e) => {
+                    e.target.src = '/placeholder-card.png';
+                  }}
+                />
+                {imageZoomed && (
+                  <div 
+                    className="position-absolute top-0 end-0 m-2 px-2 py-1 rounded"
+                    style={{
+                      background: 'rgba(0,0,0,0.7)',
+                      color: 'white',
+                      fontSize: '0.8rem',
+                      zIndex: 10
+                    }}
+                  >
+                    🔍 Zoom activo
+                  </div>
+                )}
+              </div>
               
               <Button
                 variant={favorites.includes(card.id) ? "danger" : "light"}
                 onClick={() => toggleFavorite(card.id)}
                 className="btn-lg d-flex align-items-center gap-2"
+                style={{ 
+                  background: favorites.includes(card.id) ? 'rgba(220, 53, 69, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(10px)',
+                  border: '2px solid rgba(255, 255, 255, 0.3)'
+                }}
               >
                 <FaHeart />
                 {favorites.includes(card.id) ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
               </Button>
+              </div>
             </div>
           </Col>
 

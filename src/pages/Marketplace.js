@@ -167,7 +167,7 @@ export default function Marketplace() {
         const latestQuery = query(
           collection(db, 'listings'),
           orderBy('createdAt', 'desc'),
-          limit(6)
+          limit(15)
         );
         const querySnapshot = await getDocs(latestQuery);
         setLatestListings(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
