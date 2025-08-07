@@ -217,6 +217,7 @@ export default function SellCardModal({ show, handleClose }) {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
+  const [language, setLanguage] = useState('english'); // Campo para idioma de Pokémon
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -425,6 +426,7 @@ export default function SellCardModal({ show, handleClose }) {
         tcgType: activeTab, // Nuevo campo para identificar el tipo de TCG
         setName: selectedCard.set?.name || selectedCard.set || 'Desconocido',
         rarity: selectedCard.rarity || 'Sin rareza',
+        language: activeTab === 'pokemon' ? language : null, // Solo para Pokémon
         quantity: Number(quantity),
         availableQuantity: Number(quantity),
         condition,
@@ -464,6 +466,7 @@ export default function SellCardModal({ show, handleClose }) {
       setDescription('');
       setLocation('');
       setPrice('');
+      setLanguage('english');
       handleClose();
     } catch (error) {
       console.error(error);
@@ -482,14 +485,14 @@ export default function SellCardModal({ show, handleClose }) {
   };
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered className="sell-card-modal">
-      <Modal.Header closeButton className="border-bottom-0 pb-0">
+    <Modal show={show} onHide={handleClose} size="xl" centered className="sell-card-modal glassmorphism-modal">
+      <Modal.Header closeButton className="border-bottom-0 pb-0 glassmorphism-header">
         <Modal.Title className="d-flex align-items-center gap-2">
           <FaCheck className="text-success" />
           Vender Cartas
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body className="pt-0">
+      <Modal.Body className="pt-0 glassmorphism-body">
         {!user ? (
           <div className="text-center py-4">
             <h5>Debes iniciar sesión para vender cartas</h5>
@@ -502,7 +505,7 @@ export default function SellCardModal({ show, handleClose }) {
           <Form onSubmit={handleSubmit}>
             {/* Selector de TCG */}
             <div className="mb-4">
-              <Form.Label className="fw-bold">1. Seleccionar Trading Card Game</Form.Label>
+              <Form.Label className="fw-bold text-white" style={{ fontFamily: 'Montserrat Alternates, sans-serif', fontWeight: '900', textTransform: 'uppercase' }}>1. Seleccionar Trading Card Game</Form.Label>
               <Tabs
                 activeKey={activeTab}
                 onSelect={(k) => {
@@ -524,7 +527,7 @@ export default function SellCardModal({ show, handleClose }) {
                       key={key}
                       eventKey={key}
                       title={
-                        <span className={`d-flex align-items-center gap-2 text-${config.color}`}>
+                        <span className="d-flex align-items-center gap-2 text-white" style={{ fontFamily: 'Montserrat Alternates, sans-serif', fontWeight: '700', textTransform: 'uppercase' }}>
                           <IconComponent size={16} />
                           <span className="d-none d-sm-inline">{config.name}</span>
                           <span className="d-inline d-sm-none">{config.name.split(' ')[0]}</span>
@@ -545,7 +548,7 @@ export default function SellCardModal({ show, handleClose }) {
 
             {/* Buscador para la carta */}
             <Form.Group className="mb-4">
-              <Form.Label className="fw-bold">
+              <Form.Label className="fw-bold text-white" style={{ fontFamily: 'Montserrat Alternates, sans-serif', fontWeight: '900', textTransform: 'uppercase' }}>
                 2. Buscar Carta en {TCG_CONFIGS[activeTab].name}
               </Form.Label>
               <div className="d-flex gap-2 mb-2">
@@ -577,10 +580,11 @@ export default function SellCardModal({ show, handleClose }) {
                   <span className="d-none d-lg-inline">Filtros</span>
                 </Button>
                 <Button 
-                  variant={TCG_CONFIGS[activeTab].color}
+                  variant="outline-light"
                   onClick={() => searchSellCards(1)} 
                   disabled={loading || !sellSearchTerm.trim()}
                   className="d-flex align-items-center gap-2"
+                  style={{ color: 'white', borderColor: 'white' }}
                 >
                   {loading ? (
                     <Spinner size="sm" animation="border" role="status" />
@@ -704,7 +708,7 @@ export default function SellCardModal({ show, handleClose }) {
             {/* Resultados de búsqueda con paginación */}
             {!selectedCard && sellCards.length > 0 && (
               <div className="mb-4">
-                <Form.Label className="fw-bold">3. Seleccionar Carta</Form.Label>
+                <Form.Label className="fw-bold text-white" style={{ fontFamily: 'Montserrat Alternates, sans-serif', fontWeight: '900', textTransform: 'uppercase' }}>3. Seleccionar Carta</Form.Label>
                 <div className="row g-2 mb-3">
                   {sellCards.map(card => (
                     <Col key={card.id} xs={12} sm={6} md={4}>
@@ -759,7 +763,7 @@ export default function SellCardModal({ show, handleClose }) {
             {/* Mostrar carta seleccionada */}
             {selectedCard && (
               <div className="mb-4">
-                <Form.Label className="fw-bold">3. Carta Seleccionada</Form.Label>
+                <Form.Label className="fw-bold text-white" style={{ fontFamily: 'Montserrat Alternates, sans-serif', fontWeight: '900', textTransform: 'uppercase' }}>3. Carta Seleccionada</Form.Label>
                 <div className="card border-primary p-3">
                   <div className="d-flex align-items-center gap-3">
                     <img
@@ -793,7 +797,7 @@ export default function SellCardModal({ show, handleClose }) {
             {/* Formulario de detalles de venta */}
             {selectedCard && (
               <div className="mb-4">
-                <Form.Label className="fw-bold">4. Detalles de Venta</Form.Label>
+                <Form.Label className="fw-bold text-white" style={{ fontFamily: 'Montserrat Alternates, sans-serif', fontWeight: '900', textTransform: 'uppercase' }}>4. Detalles de Venta</Form.Label>
                 <Row className="g-3">
                   <Col xs={6} sm={3}>
                     <Form.Group>
@@ -821,7 +825,24 @@ export default function SellCardModal({ show, handleClose }) {
                       </Form.Select>
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6}>
+                  {activeTab === 'pokemon' && (
+                    <Col xs={12} sm={3}>
+                      <Form.Group>
+                        <Form.Label className="small">Idioma</Form.Label>
+                        <Form.Select 
+                          value={language} 
+                          onChange={(e) => setLanguage(e.target.value)}
+                          required
+                        >
+                          <option value="english">Inglés</option>
+                          <option value="spanish">Español</option>
+                          <option value="japanese">Japonés</option>
+                          <option value="korean">Coreano</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  )}
+                  <Col xs={12} sm={activeTab === 'pokemon' ? 3 : 6}>
                     <Form.Group>
                       <Form.Label className="small">Precio (USD)</Form.Label>
                       <Form.Control
@@ -869,7 +890,7 @@ export default function SellCardModal({ show, handleClose }) {
             {/* Resumen de la venta */}
             {selectedCard && price && (
               <div className="mb-4">
-                <Form.Label className="fw-bold">5. Resumen</Form.Label>
+                <Form.Label className="fw-bold text-white" style={{ fontFamily: 'Montserrat Alternates, sans-serif', fontWeight: '900', textTransform: 'uppercase' }}>5. Resumen</Form.Label>
                 <div className="card bg-light p-3">
                   <div className="row g-2 text-center">
                     <div className="col-4">
