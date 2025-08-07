@@ -222,7 +222,7 @@ export default function Marketplace() {
       const enrichedCards = apiResults.cards.map(card => {
         const cardSellers = localSellers.filter(seller => 
           seller.cardId === card.id || 
-          seller.cardName.toLowerCase().includes(card.name.toLowerCase())
+          (seller.cardName.toLowerCase().trim() === card.name.toLowerCase().trim())
         );
         
         return {

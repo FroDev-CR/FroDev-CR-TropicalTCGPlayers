@@ -30,7 +30,7 @@ export default function Dashboard() {
     salesData: [],
     tcgDistribution: [],
     recentSales: [],
-    topListings: []
+    allListings: []
   });
 
   useEffect(() => {
@@ -95,11 +95,10 @@ export default function Dashboard() {
       // Recent sales (last 10)
       const recentSales = transactions.slice(0, 10);
 
-      // Top listings by views/favorites
-      const topListings = listings
-        .filter(l => l.status === 'active')
-        .sort((a, b) => (b.views || 0) - (a.views || 0))
-        .slice(0, 10);
+      // All listings for management (not just active ones)
+      const allListings = listings
+        .sort((a, b) => (b.createdAt || new Date()) - (a.createdAt || new Date()))
+        .slice(0, 20); // Show last 20 listings
 
       setDashboardData({
         totalSales,
@@ -111,7 +110,7 @@ export default function Dashboard() {
         salesData,
         tcgDistribution,
         recentSales,
-        topListings
+        allListings
       });
 
     } catch (error) {
@@ -395,7 +394,7 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          {dashboardData.topListings.length === 0 ? (
+          {dashboardData.allListings.length === 0 ? (
             <Alert variant="info" className="text-center">
               <FaBoxOpen className="me-2" />
               No tienes publicaciones activas. ¡Crea tu primera publicación!
@@ -417,7 +416,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dashboardData.topListings.map((listing) => (
+                    {dashboardData.allListings.map((listing) => (
                       <tr key={listing.id}>
                         <td>
                           <img 
@@ -460,6 +459,16 @@ export default function Dashboard() {
                             >
                               <FaEdit size={12} />
                             </Button>
+                            {listing.status === 'active' && (
+                              <Button 
+                                variant="outline-warning" 
+                                size="sm"
+                                onClick={() => handleMarkAsSold(listing.id)}
+                                title="Marcar como vendida"
+                              >
+                                <FaDollarSign size={12} />
+                              </Button>
+                            )}
                             <Button 
                               variant="outline-danger" 
                               size="sm"

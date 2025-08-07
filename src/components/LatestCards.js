@@ -98,12 +98,41 @@ const LatestCards = ({ onCardClick }) => {
               <div 
                 className="simple-card-container"
                 onClick={() => onCardClick && onCardClick({
-                  id: card.id,
+                  id: card.cardId || card.id,
                   name: card.cardName,
-                  images: { small: card.cardImage, large: card.cardImage },
-                  set: { name: card.setName || 'Desconocido' },
+                  images: { 
+                    small: card.cardImage, 
+                    large: card.cardImage 
+                  },
+                  set: { 
+                    name: typeof card.setName === 'object' ? 
+                      (card.setName.name || 'Desconocido') : 
+                      (card.setName || 'Desconocido') 
+                  },
                   rarity: card.rarity || 'Sin rareza',
-                  tcgType: card.tcgType || 'unknown'
+                  tcgType: card.tcgType || 'unknown',
+                  // Agregar información de precios
+                  tcgPlayer: {
+                    low: card.price * 0.8, // Precio bajo simulado
+                    market: card.price,     // Precio de mercado
+                    high: card.price * 1.2  // Precio alto simulado
+                  },
+                  // Agregar vendedores locales
+                  sellers: [{
+                    listingId: card.id,
+                    sellerId: card.sellerId,
+                    sellerName: card.sellerName,
+                    price: card.price,
+                    condition: card.condition,
+                    quantity: card.availableQuantity || card.quantity || 1,
+                    createdAt: card.createdAt,
+                    userPhone: card.userPhone,
+                    userEmail: card.userEmail,
+                    location: card.location
+                  }],
+                  hasLocalSellers: true,
+                  // Agregar campos específicos según el TCG
+                  language: card.language || null
                 })}
                 style={{ cursor: onCardClick ? 'pointer' : 'default' }}
               >
@@ -117,7 +146,7 @@ const LatestCards = ({ onCardClick }) => {
                   {/* Overlay con precio */}
                   <div className="simple-card-overlay">
                     <div className="simple-price-badge">
-                      ₡{card.price}
+                      ₡{typeof card.price === 'number' ? card.price.toLocaleString() : card.price}
                     </div>
                   </div>
                 </div>

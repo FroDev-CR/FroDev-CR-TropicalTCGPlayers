@@ -10,17 +10,17 @@ import { useCart } from '../contexts/CartContext';
 const POKEMON_API_KEY = process.env.REACT_APP_POKEMON_API_KEY;
 const TCG_API_KEY = process.env.REACT_APP_TCG_API_KEY;
 
-// Configuración de TCGs disponibles
+// Configuración de TCGs disponibles - UNIFICADA CON UNA SOLA API
 const TCG_CONFIGS = {
   pokemon: {
     name: 'Pokémon',
     icon: FaRocket,
     color: 'primary',
-    api: 'pokemon',
-    endpoint: 'https://api.pokemontcg.io/v2/cards',
-    apiKey: POKEMON_API_KEY,
+    api: 'tcgapis',
+    endpoint: 'https://www.apitcg.com/api/pokemon/cards',
+    apiKey: TCG_API_KEY,
     searchParam: 'name',
-    headers: { 'X-Api-Key': POKEMON_API_KEY }
+    headers: { 'x-api-key': TCG_API_KEY }
   },
   onepiece: {
     name: 'One Piece',
@@ -87,6 +87,34 @@ const TCG_CONFIGS = {
 // Función para generar datos de ejemplo cuando CORS falla
 const getExampleCards = (gameType, searchTerm) => {
   const examples = {
+    pokemon: [
+      {
+        id: "base1-4",
+        name: "Charizard",
+        images: { 
+          small: "https://via.placeholder.com/200/ff6b35/fff?text=Charizard",
+          large: "https://via.placeholder.com/400/ff6b35/fff?text=Charizard"
+        },
+        set: { name: "Base Set" },
+        rarity: "Rare Holo",
+        type: "Fire",
+        hp: "120",
+        attacks: ["Fire Spin", "Flamethrower"]
+      },
+      {
+        id: "base1-58",
+        name: "Pikachu",
+        images: { 
+          small: "https://via.placeholder.com/200/ffeb3b/333?text=Pikachu",
+          large: "https://via.placeholder.com/400/ffeb3b/333?text=Pikachu"
+        },
+        set: { name: "Base Set" },
+        rarity: "Common",
+        type: "Lightning",
+        hp: "40",
+        attacks: ["Thunder Jolt", "Agility"]
+      }
+    ],
     onepiece: [
       {
         id: "OP01-001",
@@ -250,52 +278,15 @@ export default function SellCardModal({ show, handleClose }) {
       
       let response, data, fetchedCards = [], totalCount = 0;
       
-      if (config.api === 'pokemon') {
-        // API de Pokémon TCG v2 con búsqueda mejorada
-        let queryTerm;
-        if (sanitizedTerm.includes(' ')) {
-          // Búsqueda exacta para frases
-          queryTerm = `name:"${sanitizedTerm}"`;
-        } else {
-          // Búsqueda con wildcard para palabras parciales (ej: "Chari" encuentra "Charizard")
-          queryTerm = `name:${sanitizedTerm}*`;
-        }
-        
-        const url = `${config.endpoint}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=8`;
-        
-        response = await fetch(url, { 
-          headers: config.headers || {},
-          timeout: 10000
-        });        
-        
-        console.log('Pokemon API URL:', url);
-        console.log('Pokemon API Headers:', config.headers);
-        
-        if (!response.ok) {
-          if (response.status === 400) {
-            throw new Error('Término de búsqueda inválido. Prueba con "Charizard", "Pikachu ex", etc.');
-          } else if (response.status === 429) {
-            throw new Error('Demasiadas búsquedas. Espera un momento y vuelve a intentar.');
-          }
-          throw new Error(`Error ${response.status}: No se pudieron cargar las cartas de ${config.name}`);
-        }
-        
-        data = await response.json();
-        
-        if (!data?.data || !Array.isArray(data.data)) {
-          throw new Error('No se encontraron cartas para tu búsqueda');
-        }
-        
-        fetchedCards = data.data;
-        totalCount = data.totalCount || fetchedCards.length;
-        
-      } else {
-        // API de TCG para otros juegos - Usar proxy local en desarrollo
+      // Usar la misma API para todos los TCGs incluyendo Pokémon
+      {
+        // API de TCG unificada - Usar proxy local en desarrollo
         const isProduction = process.env.NODE_ENV === 'production';
         const apiUrl = isProduction 
           ? config.endpoint 
           : config.endpoint.replace('https://www.apitcg.com/api', '/api/tcg');
         
+        console.log(`Searching ${config.name} with URL:`, apiUrl);
         
         try {
           response = await fetch(
