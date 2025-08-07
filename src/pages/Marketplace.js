@@ -498,11 +498,18 @@ export default function Marketplace() {
           </div>
           <div className="d-flex gap-2">
             <Button 
-              variant="success" 
+              variant="outline-light" 
               onClick={() => setShowSellModal(true)}
-              className="d-flex align-items-center gap-2"
+              className="d-flex align-items-center gap-2 btn-lg"
+              style={{
+                color: 'white',
+                borderColor: 'white',
+                backgroundColor: 'transparent',
+                fontSize: '1.1rem',
+                padding: '0.75rem 1.5rem'
+              }}
             >
-              <FaShoppingCart size={14} />
+              <FaShoppingCart size={16} />
               Vender Cartas
             </Button>
           </div>
@@ -538,9 +545,6 @@ export default function Marketplace() {
               <Form.Group>
                 <Form.Label className="fw-bold">2. Buscar cartas</Form.Label>
                 <div className="input-group">
-                  <span className="input-group-text">
-                    <FaSearch />
-                  </span>
                   <Form.Control
                     type="text"
                     placeholder={selectedTCG ? `🔍 Buscar cartas de ${TCG_GAMES[selectedTCG]?.name}...` : "Selecciona un TCG primero"}
@@ -636,52 +640,6 @@ export default function Marketplace() {
               <FeaturedSections onViewCard={openCardModal} />
             )}
 
-            {/* Últimas cartas publicadas */}
-            {!searchTerm.trim() && !getActiveFiltersCount() && latestListings.length > 0 && (
-          <div className="latest-cards-section mb-5">
-            <h3 className="mb-4">🔥 Últimas cartas publicadas</h3>
-            <div className="latest-cards-horizontal">
-              <div className="latest-cards-container">
-                {latestListings.map(listing => (
-                  <div key={listing.id} className="latest-card-item">
-                    <Card 
-                      className="h-100 latest-card-hover"
-                      onClick={() => {
-                        // Create a simplified card object for the modal
-                        const cardData = {
-                          id: listing.cardId || listing.id,
-                          name: listing.cardName,
-                          images: { small: listing.cardImage, large: listing.cardImage },
-                          set: { name: typeof listing.setName === 'object' ? (listing.setName.name || 'Desconocido') : (listing.setName || 'Desconocido') },
-                          rarity: listing.rarity || 'Sin rareza'
-                        };
-                        openCardModal(cardData);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <Card.Img 
-                        variant="top" 
-                        src={listing.cardImage || 'https://via.placeholder.com/200'} 
-                        className="card-img-top"
-                        style={{ height: '140px', objectFit: 'contain', padding: '0.5rem' }}
-                      />
-                      <Card.Body className="p-2">
-                        <Card.Title className="fs-6 mb-1 text-truncate">{listing.cardName}</Card.Title>
-                        <div className="d-flex justify-content-between align-items-center">
-                          <span className="badge bg-success">₡{listing.price}</span>
-                          <small className="text-muted">{listing.condition}</small>
-                        </div>
-                        <div className="mt-2">
-                          <small className="text-muted d-block text-truncate">Por: {listing.sellerName || "Anónimo"}</small>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {cards.length > 0 && (
           <>
