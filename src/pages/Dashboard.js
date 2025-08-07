@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Tab, Tabs, Table, Badge, Button, Alert, Spinner, Form } from 'react-bootstrap';
 import { FaChartLine, FaBoxOpen, FaDollarSign, FaStar, FaEye, FaEdit, FaTrash, FaPlus, FaCalendarAlt, FaTrophy } from 'react-icons/fa';
-import { collection, query, where, getDocs, orderBy, deleteDoc, doc, getDoc, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, deleteDoc, doc, getDoc, limit, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
