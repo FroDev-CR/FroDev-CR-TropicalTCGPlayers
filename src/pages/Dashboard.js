@@ -162,6 +162,23 @@ export default function Dashboard() {
     }
   };
 
+  const handleMarkAsSold = async (listingId) => {
+    if (window.confirm('¿Marcar esta publicación como vendida?')) {
+      try {
+        await updateDoc(doc(db, 'listings', listingId), {
+          status: 'sold',
+          availableQuantity: 0,
+          updatedAt: new Date()
+        });
+        fetchDashboardData();
+        alert('Publicación marcada como vendida');
+      } catch (error) {
+        console.error('Error updating listing:', error);
+        alert('Error al actualizar la publicación');
+      }
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-CR', {
       style: 'currency',
