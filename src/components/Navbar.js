@@ -199,6 +199,7 @@ const CustomNavbar = () => {
                     onClick={() => setShowAuthModal(true)}
                     size="sm"
                     className="w-100 w-lg-auto tropical-button"
+                    data-auth-trigger
                   >
                     Ingresar
                   </Button>

@@ -182,7 +182,7 @@ export default function FloatingCart() {
                           <Button
                             variant="outline-danger"
                             size="sm"
-                            onClick={() => removeFromCart(item.listingId)}
+                            onClick={() => removeFromCart(item.listingId || item.id)}
                             className="ms-2"
                           >
                             <FaTrash size={12} />

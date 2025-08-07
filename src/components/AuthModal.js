@@ -131,8 +131,7 @@ export default function AuthModal({ show, handleClose }) {
                 <Form.Control
                   type="tel"
                   required
-                  pattern="[0-9]{4}-[0-9]{4}"
-                  placeholder="Ej: 8888-8888"
+                  placeholder="Ej: 8888-8888 ó 88888888"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />

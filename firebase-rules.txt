@@ -1,0 +1,157 @@
+// Reglas de Firestore para Tropical TCG Players
+// Estas reglas van en Firebase Console -> Firestore -> Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ====== REGLAS PARA USUARIOS ======
+    match /users/{userId} {
+      // Todos pueden leer perfiles públicos (solo campos específicos)
+      allow read: if true;
+      
+      // Solo el propietario puede crear/actualizar su perfil
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      
+      // Solo el propietario puede eliminar su perfil
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ====== REGLAS PARA LISTINGS (CARTAS EN VENTA) ======
+    match /listings/{listingId} {
+      // Todos pueden ver listings activos
+      allow read: if true;
+      
+      // Solo usuarios autenticados pueden crear listings
+      allow create: if request.auth != null 
+        && request.auth.uid == resource.data.sellerId;
+      
+      // Solo el vendedor puede actualizar su listing
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.sellerId;
+      
+      // Solo el vendedor puede eliminar su listing
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.sellerId;
+    }
+    
+    // ====== REGLAS PARA TRANSACCIONES ======
+    match /transactions/{transactionId} {
+      // Solo el comprador y vendedor pueden ver la transacción
+      allow read: if request.auth != null 
+        && (request.auth.uid == resource.data.buyerId 
+            || request.auth.uid == resource.data.sellerId);
+      
+      // Solo usuarios autenticados pueden crear transacciones (como compradores)
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.buyerId;
+      
+      // Solo el comprador o vendedor pueden actualizar la transacción
+      allow update: if request.auth != null 
+        && (request.auth.uid == resource.data.buyerId 
+            || request.auth.uid == resource.data.sellerId);
+      
+      // Las transacciones no se pueden eliminar (para auditoría)
+      allow delete: if false;
+    }
+    
+    // ====== REGLAS PARA NOTIFICACIONES ======
+    match /notifications/{notificationId} {
+      // Solo el destinatario puede ver sus notificaciones
+      allow read: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Solo el sistema o usuarios autenticados pueden crear notificaciones
+      allow create: if request.auth != null;
+      
+      // Solo el destinatario puede actualizar sus notificaciones (marcar como leído)
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Solo el destinatario puede eliminar sus notificaciones
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+    }
+    
+    // ====== REGLAS PARA CHATS ======
+    match /chats/{chatId} {
+      // Solo los participantes de la conversación pueden ver los mensajes
+      allow read: if request.auth != null 
+        && (request.auth.uid == resource.data.senderId 
+            || request.auth.uid == resource.data.receiverId);
+      
+      // Solo usuarios autenticados pueden enviar mensajes
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.senderId;
+      
+      // Solo el remitente puede actualizar sus mensajes (marcar como leído desde el otro lado)
+      allow update: if request.auth != null 
+        && (request.auth.uid == resource.data.senderId 
+            || request.auth.uid == resource.data.receiverId);
+      
+      // Los mensajes no se pueden eliminar (para auditoría)
+      allow delete: if false;
+    }
+    
+    // ====== REGLAS PARA BINDERS (CARPETAS DE CARTAS) ======
+    match /binders/{binderId} {
+      // Los binders públicos los puede ver cualquiera
+      // Los binders privados solo el propietario
+      allow read: if resource.data.isPublic == true 
+        || (request.auth != null && request.auth.uid == resource.data.userId);
+      
+      // Solo usuarios autenticados pueden crear binders
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId;
+      
+      // Solo el propietario puede actualizar su binder
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Solo el propietario puede eliminar su binder
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+    }
+    
+    // ====== REGLAS GENERALES ======
+    // Cualquier otra colección requiere autenticación para leer y escribir
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// INSTRUCCIONES PARA APLICAR:
+// 1. Ve a Firebase Console (https://console.firebase.google.com)
+// 2. Selecciona tu proyecto "tropical-tcg-players-5a199"
+// 3. Ve a Firestore Database
+// 4. Haz click en la pestaña "Rules"
+// 5. Copia y pega estas reglas
+// 6. Haz click en "Publish"
+
+// ÍNDICES NECESARIOS:
+// También debes crear estos índices en Firebase Console -> Firestore -> Indexes:
+
+// 1. Colección: listings
+//    Campos: status (Ascending), createdAt (Descending)
+//    Query scope: Collection
+
+// 2. Colección: listings  
+//    Campos: sellerId (Ascending), createdAt (Descending)
+//    Query scope: Collection
+
+// 3. Colección: notifications
+//    Campos: userId (Ascending), createdAt (Descending)  
+//    Query scope: Collection
+
+// 4. Colección: transactions
+//    Campos: buyerId (Ascending), createdAt (Descending)
+//    Query scope: Collection
+
+// 5. Colección: transactions
+//    Campos: sellerId (Ascending), createdAt (Descending)
+//    Query scope: Collection
+
+// 6. Colección: chats
+//    Campos: transactionId (Ascending), createdAt (Ascending)
+//    Query scope: Collection

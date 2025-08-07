@@ -5,10 +5,11 @@ import { collection, query, where, getDocs, orderBy, limit } from 'firebase/fire
 import { db } from '../firebase';
 import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
+import { useAuthActions } from '../hooks/useAuthActions';
 import SellCardModal from '../components/SellCardModal';
 import MarketplaceFilters from '../components/MarketplaceFilters';
 import FeaturedSections from '../components/FeaturedSections';
-import CardDetailModal from '../components/CardDetailModal';
+import CardDetailModalOptimized from '../components/CardDetailModalOptimized';
 import FloatingCart from '../components/FloatingCart';
 import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaFilter } from 'react-icons/fa';
 import apiSearchService from '../services/apiSearchService';
@@ -55,6 +56,7 @@ export default function Marketplace() {
   
   
   const { addToCart } = useCart();
+  const { protectedAction } = useAuthActions();
 
   const [latestListings, setLatestListings] = useState([]);
 
@@ -500,7 +502,10 @@ export default function Marketplace() {
           <div className="d-flex gap-2">
             <Button 
               variant="outline-light" 
-              onClick={() => setShowSellModal(true)}
+              onClick={protectedAction(
+                () => setShowSellModal(true),
+                'Debes iniciar sesión para vender cartas'
+              )}
               className="d-flex align-items-center gap-2 btn-lg"
               style={{
                 color: 'white',
@@ -723,7 +728,10 @@ export default function Marketplace() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleFavorite(card.id);
+                            protectedAction(
+                              () => toggleFavorite(card.id),
+                              'Debes iniciar sesión para agregar cartas a favoritos'
+                            )();
                           }}
                           className="rounded-circle"
                           title={favorites.includes(card.id) ? "Quitar de favoritos" : "Agregar a favoritos"}
@@ -760,8 +768,8 @@ export default function Marketplace() {
 
       <SellCardModal show={showSellModal} handleClose={() => setShowSellModal(false)} />
       
-      {/* Modal de Detalle de Carta - Nuevo componente integrado */}
-      <CardDetailModal 
+      {/* Modal de Detalle de Carta - Componente optimizado para móviles */}
+      <CardDetailModalOptimized 
         show={showCardModal}
         onHide={closeCardModal}
         card={selectedCard}

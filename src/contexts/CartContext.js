@@ -124,7 +124,7 @@ export function CartProvider({ children }) {
   };
 
   const removeFromCart = async (listingId) => {
-    const newCart = cart.filter(item => item.id !== listingId);
+    const newCart = cart.filter(item => (item.listingId || item.id) !== listingId);
     setCart(newCart);
     
     // Guardar en localStorage
@@ -287,6 +287,14 @@ export function CartProvider({ children }) {
     }
   };
 
+  const getTotalItems = () => {
+    return cart.reduce((total, item) => total + (item.quantity || 1), 0);
+  };
+
+  const getTotalPrice = () => {
+    return cart.reduce((total, item) => total + (item.price * (item.quantity || 1)), 0);
+  };
+
   const reduceListingQuantity = async (listingId, quantityToReduce) => {
     try {
       const result = await runTransaction(db, async (transaction) => {
@@ -330,6 +338,8 @@ export function CartProvider({ children }) {
       removeFromCart, 
       updateCartItemQuantity,
       clearCart,
+      getTotalItems,
+      getTotalPrice,
       user,
       userData,
       loading,
