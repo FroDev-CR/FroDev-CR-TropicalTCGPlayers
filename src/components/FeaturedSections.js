@@ -53,7 +53,47 @@ function FeaturedCard({ listing, onViewCard, onAddToCart }) {
   return (
     <div 
       className="simple-card-container"
-      onClick={() => onViewCard(listing)}
+      onClick={() => {
+        // Crear objeto completo de carta con toda la información necesaria
+        const cardData = {
+          id: listing.cardId || listing.id,
+          name: listing.cardName,
+          images: { 
+            small: listing.cardImage, 
+            large: listing.cardImage 
+          },
+          set: { 
+            name: typeof listing.setName === 'object' ? 
+              (listing.setName.name || 'Desconocido') : 
+              (listing.setName || 'Desconocido') 
+          },
+          rarity: listing.rarity || 'Sin rareza',
+          tcgType: listing.tcgType || 'unknown',
+          // Agregar información de precios
+          tcgPlayer: {
+            low: listing.price * 0.8, // Precio bajo simulado
+            market: listing.price,     // Precio de mercado
+            high: listing.price * 1.2  // Precio alto simulado
+          },
+          // Agregar vendedores locales
+          sellers: [{
+            listingId: listing.id,
+            sellerId: listing.sellerId,
+            sellerName: listing.sellerName,
+            price: listing.price,
+            condition: listing.condition,
+            quantity: listing.availableQuantity || listing.quantity || 1,
+            createdAt: listing.createdAt,
+            userPhone: listing.userPhone,
+            userEmail: listing.userEmail,
+            location: listing.location
+          }],
+          hasLocalSellers: true,
+          // Agregar campos específicos según el TCG
+          language: listing.language || null
+        };
+        onViewCard(cardData);
+      }}
       style={{ cursor: 'pointer' }}
     >
       <div className="simple-card-image-wrapper">
@@ -66,7 +106,7 @@ function FeaturedCard({ listing, onViewCard, onAddToCart }) {
         {/* Overlay con precio */}
         <div className="simple-card-overlay">
           <div className="simple-price-badge">
-            ₡{listing.price}
+            ₡{typeof listing.price === 'number' ? listing.price.toLocaleString() : listing.price}
           </div>
         </div>
       </div>

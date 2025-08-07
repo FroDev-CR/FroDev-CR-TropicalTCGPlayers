@@ -264,9 +264,12 @@ export default function SellCardModal({ show, handleClose }) {
         const url = `${config.endpoint}?q=${encodeURIComponent(queryTerm)}&page=${page}&pageSize=8`;
         
         response = await fetch(url, { 
-          headers: config.headers,
+          headers: config.headers || {},
           timeout: 10000
-        });
+        });        
+        
+        console.log('Pokemon API URL:', url);
+        console.log('Pokemon API Headers:', config.headers);
         
         if (!response.ok) {
           if (response.status === 400) {
@@ -844,14 +847,14 @@ export default function SellCardModal({ show, handleClose }) {
                   )}
                   <Col xs={12} sm={activeTab === 'pokemon' ? 3 : 6}>
                     <Form.Group>
-                      <Form.Label className="small">Precio (USD)</Form.Label>
+                      <Form.Label className="small">Precio (CRC - Colones)</Form.Label>
                       <Form.Control
                         type="number"
                         min="0"
                         step="0.01"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
-                        placeholder="Ej: 5.00"
+                        placeholder="Ej: 5000"
                         required
                       />
                     </Form.Group>
@@ -903,7 +906,7 @@ export default function SellCardModal({ show, handleClose }) {
                     </div>
                     <div className="col-4">
                       <div className="small text-muted">Precio Total</div>
-                      <div className="fw-bold text-success">${(parseFloat(price) * quantity).toFixed(2)}</div>
+                      <div className="fw-bold text-success">₡{(parseFloat(price) * quantity).toLocaleString()}</div>
                     </div>
                   </div>
                 </div>

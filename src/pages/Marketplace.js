@@ -736,18 +736,13 @@ export default function Marketplace() {
                     {card.sellers && card.sellers.length > 0 && (
                       <div className="simplified-sellers-info">
                         <div className="simplified-best-price">
-                          <div className="price-badge">
-                            ₡{card.sellers[0].price}
-                          </div>
                           <div className="seller-info">
-                            <small className="seller-name">
-                              {card.sellers[0].sellerName || "Vendedor"}
+                            <small className="seller-availability">
+                              {card.sellers.length === 1 ? 
+                                "Vendedor con stock disponible" :
+                                `${card.sellers.length} vendedores con stock disponible`
+                              }
                             </small>
-                            {card.sellers.length > 1 && (
-                              <small className="more-sellers">
-                                +{card.sellers.length - 1} más
-                              </small>
-                            )}
                           </div>
                         </div>
                       </div>
