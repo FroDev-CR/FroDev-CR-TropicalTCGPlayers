@@ -9,6 +9,7 @@ import SellCardModal from '../components/SellCardModal';
 import MarketplaceFilters from '../components/MarketplaceFilters';
 import FeaturedSections from '../components/FeaturedSections';
 import CardDetailModal from '../components/CardDetailModal';
+import FloatingCart from '../components/FloatingCart';
 import { FaShoppingCart, FaWhatsapp, FaHeart, FaSearch, FaFilter } from 'react-icons/fa';
 import apiSearchService from '../services/apiSearchService';
 
@@ -765,6 +766,9 @@ export default function Marketplace() {
         onHide={closeCardModal}
         card={selectedCard}
       />
+
+      {/* Carrito flotante */}
+      <FloatingCart />
 
     </motion.div>
   );

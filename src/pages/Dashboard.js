@@ -1,7 +1,7 @@
 // src/pages/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Tab, Tabs, Table, Badge, Button, Alert, Spinner, Form } from 'react-bootstrap';
-import { FaChartLine, FaBoxOpen, FaDollarSign, FaStar, FaEye, FaEdit, FaTrash, FaPlus, FaCalendarAlt, FaTrophy } from 'react-icons/fa';
+import { FaChartLine, FaBoxOpen, FaDollarSign, FaStar, FaEye, FaEdit, FaTrash, FaPlus, FaCalendarAlt, FaTrophy, FaHandshake, FaComments, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
 import { collection, query, where, getDocs, orderBy, deleteDoc, doc, getDoc, limit, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -9,6 +9,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import SellCardModal from '../components/SellCardModal';
+import ChatModal from '../components/ChatModal';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -18,6 +19,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showSellModal, setShowSellModal] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('30');
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   
   // Data states
   const [dashboardData, setDashboardData] = useState({
@@ -30,7 +34,9 @@ export default function Dashboard() {
     salesData: [],
     tcgDistribution: [],
     recentSales: [],
-    allListings: []
+    allListings: [],
+    buyerTransactions: [],
+    sellerTransactions: []
   });
 
   useEffect(() => {
@@ -47,20 +53,40 @@ export default function Dashboard() {
       const startDate = startOfDay(subDays(new Date(), periodDays));
       const endDate = endOfDay(new Date());
 
-      // Fetch transactions (sales)
-      const transactionsQuery = query(
+      // Fetch seller transactions (sales)
+      const sellerTransactionsQuery = query(
         collection(db, 'transactions'),
         where('sellerId', '==', sellerId),
         where('createdAt', '>=', startDate),
         where('createdAt', '<=', endDate),
         orderBy('createdAt', 'desc')
       );
-      const transactionsSnapshot = await getDocs(transactionsQuery);
-      const transactions = transactionsSnapshot.docs.map(d => ({
+      const sellerTransactionsSnapshot = await getDocs(sellerTransactionsQuery);
+      const sellerTransactions = sellerTransactionsSnapshot.docs.map(d => ({
         id: d.id,
         ...d.data(),
-        createdAt: d.data().createdAt?.toDate()
+        createdAt: d.data().createdAt?.toDate(),
+        type: 'seller'
       }));
+
+      // Fetch buyer transactions (purchases)
+      const buyerTransactionsQuery = query(
+        collection(db, 'transactions'),
+        where('buyerId', '==', sellerId),
+        where('createdAt', '>=', startDate),
+        where('createdAt', '<=', endDate),
+        orderBy('createdAt', 'desc')
+      );
+      const buyerTransactionsSnapshot = await getDocs(buyerTransactionsQuery);
+      const buyerTransactions = buyerTransactionsSnapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate(),
+        type: 'buyer'
+      }));
+
+      // Combine all transactions for statistics
+      const transactions = sellerTransactions;
 
       // Fetch all listings
       const listingsQuery = query(
@@ -100,6 +126,11 @@ export default function Dashboard() {
         .sort((a, b) => (b.createdAt || new Date()) - (a.createdAt || new Date()))
         .slice(0, 20); // Show last 20 listings
 
+      // Set all transactions for the transactions tab
+      setTransactions([...sellerTransactions, ...buyerTransactions].sort((a, b) => 
+        (b.createdAt || new Date()) - (a.createdAt || new Date())
+      ));
+
       setDashboardData({
         totalSales,
         totalRevenue,
@@ -110,7 +141,9 @@ export default function Dashboard() {
         salesData,
         tcgDistribution,
         recentSales,
-        allListings
+        allListings,
+        buyerTransactions,
+        sellerTransactions
       });
 
     } catch (error) {
@@ -177,6 +210,43 @@ export default function Dashboard() {
         alert('Error al actualizar la publicación');
       }
     }
+  };
+
+  const updateTransactionStatus = async (transactionId, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'transactions', transactionId), {
+        status: newStatus,
+        updatedAt: new Date()
+      });
+      fetchDashboardData();
+      alert(`Transacción marcada como ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      alert('Error al actualizar la transacción');
+    }
+  };
+
+  const openChat = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowChatModal(true);
+  };
+
+  const getStatusBadgeTransaction = (status) => {
+    const statusMap = {
+      'PENDIENTE': { label: 'Pendiente', variant: 'warning', icon: FaClock },
+      'ACEPTADA': { label: 'Aceptada', variant: 'info', icon: FaCheck },
+      'ENVIADA': { label: 'Enviada', variant: 'primary', icon: FaBoxOpen },
+      'COMPLETADA': { label: 'Completada', variant: 'success', icon: FaCheck },
+      'CANCELADA': { label: 'Cancelada', variant: 'danger', icon: FaTimes }
+    };
+    const statusInfo = statusMap[status] || { label: status, variant: 'secondary', icon: FaClock };
+    const IconComponent = statusInfo.icon;
+    return (
+      <Badge bg={statusInfo.variant} className="d-flex align-items-center gap-1">
+        <IconComponent size={12} />
+        {statusInfo.label}
+      </Badge>
+    );
   };
 
   const formatCurrency = (amount) => {
@@ -398,6 +468,138 @@ export default function Dashboard() {
           </Row>
         </Tab>
 
+        <Tab eventKey="transactions" title="💰 Transacciones">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h4>Historial de Transacciones</h4>
+            <div className="d-flex gap-2">
+              <Badge bg="info">Como Comprador: {dashboardData.buyerTransactions.length}</Badge>
+              <Badge bg="success">Como Vendedor: {dashboardData.sellerTransactions.length}</Badge>
+            </div>
+          </div>
+
+          {transactions.length === 0 ? (
+            <Alert variant="info" className="text-center">
+              <FaHandshake className="me-2" />
+              No tienes transacciones registradas en este período.
+            </Alert>
+          ) : (
+            <Card className="border-0 shadow-sm">
+              <Card.Body>
+                <Table responsive hover>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Tipo</th>
+                      <th>Contraparte</th>
+                      <th>Productos</th>
+                      <th>Total</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((transaction) => (
+                      <tr key={transaction.id}>
+                        <td>
+                          {transaction.createdAt ? 
+                            format(transaction.createdAt, 'dd/MM/yyyy HH:mm', { locale: es }) : 
+                            'N/A'
+                          }
+                        </td>
+                        <td>
+                          <Badge bg={transaction.type === 'seller' ? 'success' : 'primary'}>
+                            {transaction.type === 'seller' ? '📤 Venta' : '📥 Compra'}
+                          </Badge>
+                        </td>
+                        <td>
+                          {transaction.type === 'seller' ? 
+                            transaction.buyerName : 
+                            transaction.sellerName
+                          }
+                        </td>
+                        <td>
+                          <div>
+                            {transaction.items?.slice(0, 2).map((item, idx) => (
+                              <small key={idx} className="d-block text-muted">
+                                {item.cardName} (x{item.quantity})
+                              </small>
+                            ))}
+                            {transaction.items?.length > 2 && (
+                              <small className="text-muted">+{transaction.items.length - 2} más</small>
+                            )}
+                          </div>
+                        </td>
+                        <td className="fw-bold text-success">
+                          {formatCurrency(transaction.totalAmount)}
+                        </td>
+                        <td>
+                          {getStatusBadgeTransaction(transaction.status)}
+                        </td>
+                        <td>
+                          <div className="d-flex gap-1">
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() => openChat(transaction)}
+                              title="Abrir chat"
+                            >
+                              <FaComments size={12} />
+                            </Button>
+                            
+                            {transaction.type === 'seller' && transaction.status === 'PENDIENTE' && (
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() => updateTransactionStatus(transaction.id, 'ACEPTADA')}
+                                title="Aceptar oferta"
+                              >
+                                <FaCheck size={12} />
+                              </Button>
+                            )}
+                            
+                            {transaction.type === 'seller' && transaction.status === 'ACEPTADA' && (
+                              <Button
+                                variant="outline-info"
+                                size="sm"
+                                onClick={() => updateTransactionStatus(transaction.id, 'ENVIADA')}
+                                title="Marcar como enviado"
+                              >
+                                <FaBoxOpen size={12} />
+                              </Button>
+                            )}
+                            
+                            {transaction.status === 'ENVIADA' && (
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() => updateTransactionStatus(transaction.id, 'COMPLETADA')}
+                                title="Marcar como completado"
+                              >
+                                <FaTrophy size={12} />
+                              </Button>
+                            )}
+                            
+                            {['PENDIENTE', 'ACEPTADA'].includes(transaction.status) && (
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => updateTransactionStatus(transaction.id, 'CANCELADA')}
+                                title="Cancelar transacción"
+                              >
+                                <FaTimes size={12} />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </Card.Body>
+            </Card>
+          )}
+        </Tab>
+
         <Tab eventKey="listings" title="📦 Mis Publicaciones">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4>Gestión de Publicaciones</h4>
@@ -515,6 +717,28 @@ export default function Dashboard() {
           fetchDashboardData(); // Refresh dashboard data
         }}
       />
+
+      {/* Chat Modal */}
+      {selectedTransaction && (
+        <ChatModal
+          show={showChatModal}
+          onHide={() => {
+            setShowChatModal(false);
+            setSelectedTransaction(null);
+          }}
+          transactionId={selectedTransaction.id}
+          otherUserId={
+            selectedTransaction.type === 'seller' 
+              ? selectedTransaction.buyerId 
+              : selectedTransaction.sellerId
+          }
+          otherUserName={
+            selectedTransaction.type === 'seller'
+              ? selectedTransaction.buyerName
+              : selectedTransaction.sellerName
+          }
+        />
+      )}
     </Container>
   );
 }

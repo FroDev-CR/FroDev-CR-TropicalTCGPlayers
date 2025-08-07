@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import AuthModal from './AuthModal';
+import NotificationBadge from './NotificationBadge';
 import { FaUser, FaShoppingCart, FaBook, FaHome, FaSignOutAlt, FaChartLine, FaCalendarAlt } from 'react-icons/fa';
 import './Navbar.css';
 import portadaImage from '../assets/images/portada2.png';
@@ -136,13 +137,21 @@ const CustomNavbar = () => {
                   
                   <Nav.Link 
                     as={Link} 
+                    to="/dashboard" 
+                    className={`mx-2 mx-lg-3 nav-hover ${isActive('/dashboard') ? 'active' : ''}`}
+                  >
+                    <FaChartLine className="d-lg-none me-2" />
+                    Dashboard
+                  </Nav.Link>
+                  
+                  <Nav.Link 
+                    as={Link} 
                     to="/perfil" 
                     className={`mx-2 mx-lg-3 nav-hover ${isActive('/perfil') ? 'active' : ''}`}
                   >
                     <FaUser className="d-lg-none me-2" />
                     Mi Perfil
                   </Nav.Link>
-                  
                   
                 </>
               )}
@@ -157,12 +166,21 @@ const CustomNavbar = () => {
               </Nav.Link>
 
 
-              {/* Botones de autenticación */}
-              <div className="d-flex align-items-center mt-3 mt-lg-0">
+              {/* Notificaciones y autenticación */}
+              <div className="d-flex align-items-center mt-3 mt-lg-0 gap-3">
+                {user && (
+                  <div className="d-none d-lg-block">
+                    <NotificationBadge />
+                  </div>
+                )}
+                
                 {user ? (
                   <div className="d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-2">
                     <div className="text-light small d-lg-none w-100 text-center">
                       Bienvenido, {user.displayName || user.email}
+                    </div>
+                    <div className="d-lg-none mb-2">
+                      <NotificationBadge />
                     </div>
                     <Button 
                       variant="outline-light" 
