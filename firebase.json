@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs18",
+    "predeploy": ["npm --prefix functions run build"]
+  },
   "hosting": {
     "public": "build",
     "ignore": [

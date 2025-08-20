@@ -1,14 +1,73 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Listings - actualizadas para sistema P2P
     match /listings/{listing} {
       allow read: if true;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.sellerId;
     }
     
+    // Users - mantener reglas existentes
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // NUEVAS REGLAS PARA COLECCIONES P2P
+    
+    // Transactions - solo participantes pueden leer/escribir
+    match /transactions/{transactionId} {
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.buyerId || 
+         request.auth.uid == resource.data.sellerId);
+    }
+    
+    // PendingTransactions - solo participantes
+    match /pendingTransactions/{transactionId} {
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.buyerId || 
+         request.auth.uid == resource.data.sellerId);
+    }
+    
+    // Notifications - solo el destinatario
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+    
+    // Disputes - solo participantes y admins pueden leer
+    match /disputes/{disputeId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.reportedBy || 
+         request.auth.uid == resource.data.reportedAgainst);
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == resource.data.reportedBy;
+    }
+    
+    // UserRecommendations - público para lectura, solo el que recomienda puede escribir
+    match /userRecommendations/{recommendationId} {
+      allow read: if true;
+      allow create, delete: if request.auth != null && 
+        request.auth.uid == resource.data.recommendingUserId;
+    }
+    
+    // Stores - público para lectura, solo admins pueden escribir
+    match /stores/{storeId} {
+      allow read: if true;
+      allow write: if false; // Solo admins via Cloud Functions
+    }
+    
+    // Binders - mantener funcionalidad existente
+    match /binders/{binderId} {
+      allow read: if resource.data.isPublic == true || 
+        (request.auth != null && request.auth.uid == resource.data.userId);
+      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Events - mantener funcionalidad existente si existe
+    match /events/{eventId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
     }
   }
 }

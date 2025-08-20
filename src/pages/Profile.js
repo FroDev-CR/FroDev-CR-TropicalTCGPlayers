@@ -80,7 +80,7 @@ const TransactionCard = ({ transaction, type, onRateUser, onUpdateStatus }) => {
                   <Button
                     variant="warning"
                     size="sm"
-                    onClick={() => onRateUser(transaction.items[0]?.sellerId, transaction.items[0]?.sellerName, transaction.id)}
+                    onClick={() => onRateUser(transaction)}
                   >
                     <FaStar className="me-1" size={12} />
                     Calificar
@@ -201,9 +201,8 @@ export default function Profile() {
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [ratingModal, setRatingModal] = useState({
     show: false,
-    sellerId: null,
-    sellerName: null,
-    transactionId: null
+    transaction: null,
+    userRole: null
   });
 
   useEffect(() => {
@@ -253,12 +252,11 @@ export default function Profile() {
     setLoadingTransactions(false);
   };
 
-  const handleRateUser = (sellerId, sellerName, transactionId) => {
+  const handleRateUser = (transaction) => {
     setRatingModal({
       show: true,
-      sellerId,
-      sellerName,
-      transactionId
+      transaction: transaction,
+      userRole: 'buyer' // El usuario que está calificando es el comprador en Profile.js
     });
   };
 
@@ -587,13 +585,20 @@ export default function Profile() {
         )}
       </Container>
 
-      <RatingSystem
-        show={ratingModal.show}
-        onHide={() => setRatingModal({ show: false, sellerId: null, sellerName: null, transactionId: null })}
-        sellerId={ratingModal.sellerId}
-        sellerName={ratingModal.sellerName}
-        transactionId={ratingModal.transactionId}
-      />
+      {ratingModal.show && ratingModal.transaction && (
+        <RatingSystem
+          show={ratingModal.show}
+          onHide={() => setRatingModal({ show: false, transaction: null, userRole: null })}
+          transaction={ratingModal.transaction}
+          userRole={ratingModal.userRole}
+          onRatingSubmitted={(ratingData) => {
+            console.log('Rating submitted:', ratingData);
+            setRatingModal({ show: false, transaction: null, userRole: null });
+            // Opcionalmente refrescar transacciones
+            fetchTransactions();
+          }}
+        />
+      )}
     </motion.div>
   );
 }
