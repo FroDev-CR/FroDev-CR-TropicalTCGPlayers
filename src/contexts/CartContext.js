@@ -30,17 +30,117 @@ export function CartProvider({ children }) {
             const userCart = data.cart || [];
             setCart(userCart);
           } else {
-            // Si el usuario no existe en Firestore, crear el documento
+            // Si el usuario no existe en Firestore, crear el documento con estructura P2P completa
             const newUserData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName || firebaseUser.email,
+              username: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+              
+              // Información personal y contacto
+              phone: '',
+              whatsapp: '', // Puede ser diferente al teléfono
+              province: '',
+              canton: '',
+              distrito: '',
+              address: '',
+              
+              // Información de identidad
+              cedula: '',
+              fullName: '', // Nombre completo según cédula
+              birthDate: '',
+              
+              // Foto de perfil
+              profilePhoto: '', // URL de la foto en Firebase Storage
+              profilePhotoThumbnail: '', // Versión pequeña de la foto
+              
+              // Timestamps
               createdAt: new Date(),
+              updatedAt: new Date(),
+              lastLogin: new Date(),
+              
+              // Datos del carrito y binders
               cart: [],
               binders: [],
               listings: [],
+              
+              // Sistema de calificaciones P2P
               rating: 0,
-              reviews: 0
+              reviews: 0,
+              ratingsReceived: [],
+              ratingsGiven: [],
+              
+              // Estadísticas P2P detalladas
+              transactionStats: {
+                asBuyer: {
+                  total: 0,
+                  completed: 0,
+                  cancelled: 0,
+                  disputed: 0,
+                  totalSpent: 0,
+                  averageRating: 0
+                },
+                asSeller: {
+                  total: 0,
+                  completed: 0,
+                  cancelled: 0,
+                  disputed: 0,
+                  totalEarned: 0,
+                  averageRating: 0
+                },
+                general: {
+                  totalTransactions: 0,
+                  successRate: 0,
+                  responseTime: 0, // Tiempo promedio de respuesta en horas
+                  memberSince: new Date()
+                }
+              },
+              
+              // Configuraciones de notificaciones
+              notificationSettings: {
+                email: true,
+                whatsapp: true,
+                inApp: true,
+                newMessages: true,
+                transactionUpdates: true,
+                marketingEmails: false
+              },
+              
+              // Estado de verificación mejorado
+              verification: {
+                email: firebaseUser.emailVerified || false,
+                phone: false,
+                whatsapp: false,
+                identity: false, // Verificación con cédula
+                address: false,
+                bankAccount: false
+              },
+              
+              // Información adicional para confianza
+              socialProof: {
+                facebookProfile: '',
+                instagramProfile: '',
+                linkedinProfile: '',
+                websiteUrl: ''
+              },
+              
+              // Preferencias de venta/compra
+              preferences: {
+                preferredPaymentMethods: ['sinpe', 'efectivo', 'transferencia'],
+                preferredDeliveryMethods: ['pickup', 'delivery', 'shipping'],
+                maxDeliveryDistance: 50, // km
+                acceptsNegotiation: true,
+                autoAcceptOffers: false
+              },
+              
+              // Estado de la cuenta
+              accountStatus: {
+                isActive: true,
+                isSuspended: false,
+                suspensionReason: '',
+                isVerified: false, // Se activa cuando se verifican datos importantes
+                trustLevel: 'new' // 'new', 'basic', 'verified', 'trusted', 'premium'
+              }
             };
             await setDoc(doc(db, 'users', firebaseUser.uid), newUserData);
             setUserData(newUserData);

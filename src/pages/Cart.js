@@ -1,18 +1,20 @@
 // src/pages/Cart.js
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Button, Image, Badge, Alert, Form, Modal } from 'react-bootstrap';
-import { FaShoppingCart, FaUser, FaStar, FaMapMarkerAlt, FaTrash, FaWhatsapp, FaComments, FaHandshake } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaStar, FaMapMarkerAlt, FaTrash, FaWhatsapp, FaComments, FaHandshake, FaCreditCard } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import P2PCheckout from '../components/P2PCheckout';
 
 export default function Cart() {
   const [user] = useAuthState(auth);
   const { cart, removeFromCart, clearCart, getTotalPrice, getTotalItems } = useCart();
   const [showProposeModal, setShowProposeModal] = useState(false);
+  const [showP2PCheckout, setShowP2PCheckout] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [buyerNotes, setBuyerNotes] = useState('');
@@ -332,10 +334,28 @@ export default function Cart() {
                   <span className="fw-bold fs-4 text-success">₡{totalPrice.toLocaleString()}</span>
                 </div>
 
+                {/* Botón P2P Checkout */}
+                <div className="d-grid gap-2 mt-3">
+                  <Button
+                    variant="success"
+                    size="lg"
+                    onClick={() => setShowP2PCheckout(true)}
+                    disabled={!user || cart.length === 0}
+                  >
+                    <FaCreditCard className="me-2" />
+                    Checkout P2P
+                  </Button>
+                  {!user && (
+                    <small className="text-muted text-center">
+                      Inicia sesión para usar el checkout P2P
+                    </small>
+                  )}
+                </div>
+
                 <Alert variant="info" className="mt-3 small">
                   <FaComments className="me-2" />
-                  El proceso de compra se maneja por vendedor individual. 
-                  Usa "Proponer Trato" para iniciar la negociación.
+                  El checkout P2P maneja automáticamente múltiples vendedores y 
+                  coordina todo el proceso de compra.
                 </Alert>
               </Card.Body>
             </Card>
@@ -420,6 +440,18 @@ export default function Cart() {
             </Button>
           </Modal.Footer>
         </Modal>
+
+        {/* Modal P2P Checkout */}
+        <P2PCheckout
+          show={showP2PCheckout}
+          onHide={() => setShowP2PCheckout(false)}
+          onTransactionCreated={(results) => {
+            console.log('Transacciones P2P creadas:', results);
+            setShowP2PCheckout(false);
+            // Navegar al dashboard para ver las transacciones
+            navigate('/dashboard');
+          }}
+        />
       </Container>
     </motion.div>
   );

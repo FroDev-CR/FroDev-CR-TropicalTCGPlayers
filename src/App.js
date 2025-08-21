@@ -20,6 +20,7 @@ import Binders from './pages/Binders';
 import Dashboard from './pages/Dashboard';
 import { CartProvider } from './contexts/CartContext';
 import { TransactionProvider } from './contexts/TransactionContext';
+import DatabaseReset from './pages/DatabaseReset';
 import backgroundImage from './assets/images/textura3.png';
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
               <Route path="/binder/:id" element={<BinderView />} />
               <Route path="/carrito" element={<Cart />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/reset-database" element={<DatabaseReset />} />
             </Routes>
             <Toaster position="top-right" />
             <Footer />

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Container, Form, Button, Alert, Card, Spinner, Row, Col, Nav, Badge, Modal } from 'react-bootstrap';
-import { db } from '../firebase';
+import { Container, Form, Button, Alert, Card, Spinner, Row, Col, Nav, Badge, Modal, Image } from 'react-bootstrap';
+import { db, storage } from '../firebase';
 import { doc, updateDoc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { motion } from 'framer-motion';
-import { FaWhatsapp, FaStar, FaEdit, FaSave, FaTimes, FaEye, FaCheckCircle, FaClock, FaShoppingCart, FaStore, FaUser, FaChartLine } from 'react-icons/fa';
+import { FaWhatsapp, FaStar, FaEdit, FaSave, FaTimes, FaEye, FaCheckCircle, FaClock, FaShoppingCart, FaStore, FaUser, FaChartLine, FaCamera, FaUpload } from 'react-icons/fa';
 import { useCart } from '../contexts/CartContext';
 import RatingSystem from '../components/RatingSystem';
 import DashboardContent from '../components/DashboardContent';
@@ -204,6 +205,9 @@ export default function Profile() {
     transaction: null,
     userRole: null
   });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   useEffect(() => {
     if (userData) {
@@ -271,6 +275,61 @@ export default function Profile() {
     }
   };
 
+  const handlePhotoSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona un archivo de imagen válido');
+        return;
+      }
+      
+      // Validar tamaño (5MB máximo)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La imagen debe ser menor a 5MB');
+        return;
+      }
+      
+      setSelectedPhoto(file);
+      
+      // Crear preview
+      const reader = new FileReader();
+      reader.onload = (e) => setPhotoPreview(e.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadPhoto = async () => {
+    if (!selectedPhoto || !user) return null;
+    
+    setUploadingPhoto(true);
+    try {
+      // Crear referencia única para la foto
+      const photoRef = ref(storage, `profile-photos/${user.uid}/${Date.now()}-${selectedPhoto.name}`);
+      
+      // Subir archivo
+      const snapshot = await uploadBytes(photoRef, selectedPhoto);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      // Si había una foto anterior, eliminarla
+      if (formData.profilePhoto) {
+        try {
+          const oldPhotoRef = ref(storage, formData.profilePhoto);
+          await deleteObject(oldPhotoRef);
+        } catch (error) {
+          console.log('No se pudo eliminar la foto anterior:', error);
+        }
+      }
+      
+      return downloadURL;
+    } catch (error) {
+      console.error('Error subiendo foto:', error);
+      throw error;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
     setError('');
@@ -279,13 +338,31 @@ export default function Profile() {
     
     try {
       if (user) {
-        await updateDoc(doc(db, 'users', user.uid), {
-          ...formData,
-          updatedAt: new Date()
-        });
+        let updatedData = { ...formData, updatedAt: new Date() };
+        
+        // Si hay una nueva foto seleccionada, subirla
+        if (selectedPhoto) {
+          try {
+            const photoURL = await uploadPhoto();
+            if (photoURL) {
+              updatedData.profilePhoto = photoURL;
+            }
+          } catch (photoError) {
+            console.error('Error subiendo foto:', photoError);
+            setError('Error subiendo la foto de perfil');
+            setSaving(false);
+            return;
+          }
+        }
+        
+        await updateDoc(doc(db, 'users', user.uid), updatedData);
         
         // Sincronizar datos del usuario
         await syncUserData();
+        
+        // Limpiar estados de foto
+        setSelectedPhoto(null);
+        setPhotoPreview(null);
         
         setEditMode(false);
         setSuccess('Perfil actualizado correctamente');
@@ -398,23 +475,70 @@ export default function Profile() {
 
                   {!editMode ? (
                     <div className="profile-info">
-                      <Row>
-                        <Col md={6}>
-                          <h4 className="mb-3">{userData.username || 'Usuario sin nombre'}</h4>
-                          <div className="mb-3">
-                            <strong>Email:</strong> {user.email}
+                      <Row className="align-items-start">
+                        <Col md={3} className="text-center">
+                          <div className="profile-photo mb-3">
+                            <Image
+                              src={userData.profilePhoto || 'https://via.placeholder.com/150x150?text=Sin+Foto'}
+                              alt="Foto de perfil"
+                              roundedCircle
+                              style={{ width: '150px', height: '150px', objectFit: 'cover', border: '3px solid #dee2e6' }}
+                            />
                           </div>
-                          <div className="mb-3">
-                            <strong>Teléfono:</strong> {userData.phone || 'No registrado'}
-                          </div>
-                          <div className="mb-3">
-                            <strong>Provincia:</strong> {userData.province || 'No especificada'}
-                          </div>
-                          <div className="mb-3">
-                            <strong>Miembro desde:</strong> {userData.createdAt ? new Date(userData.createdAt.toDate()).toLocaleDateString() : 'Reciente'}
+                          <div className="verification-badges">
+                            {userData.verification?.email && (
+                              <Badge bg="success" className="me-1 mb-1">✅ Email</Badge>
+                            )}
+                            {userData.verification?.phone && (
+                              <Badge bg="success" className="me-1 mb-1">✅ Teléfono</Badge>
+                            )}
+                            {userData.verification?.identity && (
+                              <Badge bg="success" className="me-1 mb-1">✅ Cédula</Badge>
+                            )}
                           </div>
                         </Col>
-                        <Col md={6} className="text-center">
+                        <Col md={5}>
+                          <h4 className="mb-3">{userData.fullName || userData.username || 'Usuario sin nombre'}</h4>
+                          <div className="mb-2">
+                            <strong>Usuario:</strong> @{userData.username || 'sin-usuario'}
+                          </div>
+                          <div className="mb-2">
+                            <strong>Email:</strong> {user.email}
+                          </div>
+                          {userData.cedula && (
+                            <div className="mb-2">
+                              <strong>Cédula:</strong> {userData.cedula}
+                            </div>
+                          )}
+                          <div className="mb-2">
+                            <strong>Teléfono:</strong> {userData.phone || 'No registrado'}
+                          </div>
+                          {userData.whatsapp && userData.whatsapp !== userData.phone && (
+                            <div className="mb-2">
+                              <strong>WhatsApp:</strong> {userData.whatsapp}
+                            </div>
+                          )}
+                          <div className="mb-2">
+                            <strong>Ubicación:</strong> {userData.province || 'No especificada'}
+                          </div>
+                          <div className="mb-2">
+                            <strong>Miembro desde:</strong> {userData.createdAt ? new Date(userData.createdAt.toDate()).toLocaleDateString() : 'Reciente'}
+                          </div>
+                          <div className="mb-2">
+                            <strong>Nivel de confianza:</strong> 
+                            <Badge 
+                              bg={
+                                userData.accountStatus?.trustLevel === 'premium' ? 'warning' :
+                                userData.accountStatus?.trustLevel === 'trusted' ? 'success' :
+                                userData.accountStatus?.trustLevel === 'verified' ? 'info' : 'secondary'
+                              } 
+                              className="ms-2"
+                            >
+                              {userData.accountStatus?.trustLevel || 'Nuevo'}
+                            </Badge>
+                          </div>
+                        </Col>
+                        <Col md={4} className="text-center">
                           <div className="mb-3">
                             <strong>Calificación:</strong>
                           </div>
@@ -423,10 +547,10 @@ export default function Profile() {
                             ({userData.rating?.toFixed(1) || '0.0'} de 5, {userData.reviews || 0} reviews)
                           </p>
 
-                          {userData.phone && (
+                          {(userData.whatsapp || userData.phone) && (
                             <Button
                               variant="success"
-                              href={`https://wa.me/506${userData.phone.replace(/[^0-9]/g, '')}`}
+                              href={`https://wa.me/506${(userData.whatsapp || userData.phone).replace(/[^0-9]/g, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="mt-3 d-flex align-items-center gap-2 mx-auto"
@@ -456,6 +580,60 @@ export default function Profile() {
                     </div>
                   ) : (
                     <Form onSubmit={handleUpdate}>
+                      {/* Foto de perfil */}
+                      <Form.Group className="mb-4 text-center">
+                        <Form.Label>Foto de perfil</Form.Label>
+                        <div className="profile-photo-upload">
+                          <div className="current-photo mb-3">
+                            <Image
+                              src={photoPreview || formData.profilePhoto || 'https://via.placeholder.com/150x150?text=Sin+Foto'}
+                              alt="Foto de perfil"
+                              roundedCircle
+                              style={{ width: '150px', height: '150px', objectFit: 'cover', border: '3px solid #dee2e6' }}
+                            />
+                          </div>
+                          <div className="photo-upload-controls d-flex gap-2 justify-content-center">
+                            <Form.Control
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePhotoSelect}
+                              style={{ display: 'none' }}
+                              id="photo-upload"
+                            />
+                            <Button
+                              variant="outline-primary"
+                              onClick={() => document.getElementById('photo-upload').click()}
+                              disabled={uploadingPhoto}
+                            >
+                              <FaCamera className="me-2" />
+                              {selectedPhoto ? 'Cambiar Foto' : 'Subir Foto'}
+                            </Button>
+                            {selectedPhoto && (
+                              <Button
+                                variant="outline-secondary"
+                                onClick={() => {
+                                  setSelectedPhoto(null);
+                                  setPhotoPreview(null);
+                                }}
+                              >
+                                <FaTimes className="me-2" />
+                                Cancelar
+                              </Button>
+                            )}
+                          </div>
+                          {uploadingPhoto && (
+                            <div className="mt-2">
+                              <Spinner size="sm" animation="border" className="me-2" />
+                              Subiendo foto...
+                            </div>
+                          )}
+                          <Form.Text className="text-muted d-block mt-2">
+                            Formatos: JPG, PNG, GIF. Máximo 5MB.
+                          </Form.Text>
+                        </div>
+                      </Form.Group>
+
+                      {/* Información básica */}
                       <Row>
                         <Col md={6}>
                           <Form.Group className="mb-3">
@@ -469,12 +647,65 @@ export default function Profile() {
                         </Col>
                         <Col md={6}>
                           <Form.Group className="mb-3">
+                            <Form.Label>Nombre completo</Form.Label>
+                            <Form.Control
+                              value={formData.fullName || ''}
+                              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                              placeholder="Tu nombre completo según cédula"
+                            />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+
+                      {/* Información de identidad */}
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Cédula de identidad *</Form.Label>
+                            <Form.Control
+                              value={formData.cedula || ''}
+                              onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+                              placeholder="Ej: 1-1234-5678"
+                              maxLength={12}
+                            />
+                            <Form.Text className="text-muted">
+                              Requerido para verificación de identidad
+                            </Form.Text>
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Fecha de nacimiento</Form.Label>
+                            <Form.Control
+                              type="date"
+                              value={formData.birthDate || ''}
+                              onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                            />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+
+                      {/* Contacto */}
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
                             <Form.Label>Teléfono</Form.Label>
                             <Form.Control
                               type="tel"
                               value={formData.phone || ''}
                               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                               placeholder="Ej: 8888-8888"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>WhatsApp</Form.Label>
+                            <Form.Control
+                              type="tel"
+                              value={formData.whatsapp || ''}
+                              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                              placeholder="Número de WhatsApp (si es diferente)"
                             />
                           </Form.Group>
                         </Col>
