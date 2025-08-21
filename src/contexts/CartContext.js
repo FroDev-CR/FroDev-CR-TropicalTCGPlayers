@@ -67,17 +67,20 @@ export function CartProvider({ children }) {
 
   const addToCart = async (listing, requestedQuantity = 1) => {
     try {
-      console.log('🛒 Intentando agregar al carrito:', listing?.cardName, 'ID:', listing?.id, 'Cantidad:', requestedQuantity);
+      console.log('🛒 Intentando agregar al carrito:', listing?.cardName, 'ID:', listing?.id || listing?.listingId, 'Cantidad:', requestedQuantity);
       console.log('📋 Listing completo:', listing);
       
-      if (!listing || !listing.id) {
+      // Normalizar el ID del listing
+      const listingId = listing.id || listing.listingId;
+      
+      if (!listing || !listingId) {
         console.error('❌ Listing inválido:', listing);
         alert('No se puede agregar al carrito: Datos de carta inválidos');
         return false;
       }
       
       // Verificar disponibilidad
-      const availability = await checkListingAvailability(listing.id, requestedQuantity);
+      const availability = await checkListingAvailability(listingId, requestedQuantity);
       
       if (!availability.available) {
         console.log('❌ No disponible:', availability.reason);
@@ -87,14 +90,14 @@ export function CartProvider({ children }) {
 
       // Verificar si ya está en el carrito
       console.log('🛒 Carrito actual:', cart);
-      console.log('🔍 Buscando item existente con ID:', listing.id);
+      console.log('🔍 Buscando item existente con ID:', listingId);
       
       let existingItemIndex = -1;
       if (!Array.isArray(cart)) {
         console.error('❌ Carrito no es un array:', cart);
         setCart([]);
       } else {
-        existingItemIndex = cart.findIndex(item => item && item.id === listing.id);
+        existingItemIndex = cart.findIndex(item => item && (item.id === listingId || item.listingId === listingId));
       }
       
       console.log('📍 Índice de item existente:', existingItemIndex);
@@ -115,6 +118,8 @@ export function CartProvider({ children }) {
       } else {
         newCart = [...cart, { 
           ...listing, 
+          id: listingId, // Asegurar que tenga 'id'
+          listingId: listingId, // Mantener 'listingId' también
           quantity: requestedQuantity, 
           addedAt: new Date(),
           availableQuantity: availability.availableQuantity 
