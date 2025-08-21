@@ -9,7 +9,10 @@
       "Bash(git checkout:*)",
       "Bash(mkdir:*)",
       "Bash(npm install)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(git gc:*)",
+      "Bash(git fsck:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }

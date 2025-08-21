@@ -67,7 +67,14 @@ export function CartProvider({ children }) {
 
   const addToCart = async (listing, requestedQuantity = 1) => {
     try {
-      console.log('🛒 Intentando agregar al carrito:', listing.cardName, 'ID:', listing.id, 'Cantidad:', requestedQuantity);
+      console.log('🛒 Intentando agregar al carrito:', listing?.cardName, 'ID:', listing?.id, 'Cantidad:', requestedQuantity);
+      console.log('📋 Listing completo:', listing);
+      
+      if (!listing || !listing.id) {
+        console.error('❌ Listing inválido:', listing);
+        alert('No se puede agregar al carrito: Datos de carta inválidos');
+        return false;
+      }
       
       // Verificar disponibilidad
       const availability = await checkListingAvailability(listing.id, requestedQuantity);
@@ -79,7 +86,18 @@ export function CartProvider({ children }) {
       }
 
       // Verificar si ya está en el carrito
-      const existingItemIndex = cart.findIndex(item => item.id === listing.id);
+      console.log('🛒 Carrito actual:', cart);
+      console.log('🔍 Buscando item existente con ID:', listing.id);
+      
+      let existingItemIndex = -1;
+      if (!Array.isArray(cart)) {
+        console.error('❌ Carrito no es un array:', cart);
+        setCart([]);
+      } else {
+        existingItemIndex = cart.findIndex(item => item && item.id === listing.id);
+      }
+      
+      console.log('📍 Índice de item existente:', existingItemIndex);
       let newCart;
       
       if (existingItemIndex >= 0) {
@@ -121,8 +139,10 @@ export function CartProvider({ children }) {
       
       return true;
     } catch (error) {
-      console.error('Error agregando al carrito:', error);
-      alert('Error al agregar la carta al carrito');
+      console.error('❌ Error agregando al carrito:', error);
+      console.error('Stack trace:', error.stack);
+      console.error('Listing que causó error:', listing);
+      alert(`Error agregando al carrito: ${error.message}`);
       return false;
     }
   };
